@@ -10,6 +10,11 @@ class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_home_redirects_to_the_dashboard(): void
+    {
+        $this->get(route('home'))->assertRedirect(route('dashboard'));
+    }
+
     public function test_guests_are_redirected_to_the_login_page()
     {
         $response = $this->get(route('dashboard'));
