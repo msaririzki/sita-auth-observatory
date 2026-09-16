@@ -1,0 +1,78 @@
+{
+    "schema_version": "1.0.0",
+    "experiment_id": "01K5A2T4S8PILOTEXPERIMENT01",
+    "trial_id": "01K5A2T4S8PILOTTRIAL00001",
+    "correlation_id": "1b319aba-b30e-461d-a337-f5fe099ec60d",
+    "profile": "wif_basic",
+    "scenario": "valid",
+    "repetition": 1,
+    "expected_decision": "allow",
+    "actual_decision": "allow",
+    "classification": "TP",
+    "reason_code": null,
+    "github": {
+        "repository": "msaririzki/sita",
+        "repository_id": "123456789",
+        "repository_owner_id": "987654321",
+        "ref": "refs/heads/codex/wif-poc",
+        "sha": "5af9cb06b2d83cee527077442b448685d53b8b66",
+        "workflow_ref": "msaririzki/sita/.github/workflows/auth-experiment.yml@refs/heads/codex/wif-poc",
+        "job_workflow_ref": null,
+        "run_id": "35099458578",
+        "run_attempt": 1,
+        "event_name": "workflow_dispatch",
+        "actor_id": "1234567",
+        "runner_os": "Linux",
+        "runner_arch": "X64"
+    },
+    "oidc_claims": {
+        "iss": "https://token.actions.githubusercontent.com",
+        "aud": "api.tailscale.com/example",
+        "sub": "repo:msaririzki/sita:ref:refs/heads/codex/wif-poc",
+        "repository": "msaririzki/sita",
+        "repository_id": "123456789",
+        "repository_owner_id": "987654321",
+        "ref": "refs/heads/codex/wif-poc",
+        "workflow_ref": "msaririzki/sita/.github/workflows/auth-experiment.yml@refs/heads/codex/wif-poc",
+        "job_workflow_ref": "msaririzki/sita/.github/workflows/auth-experiment.yml@refs/heads/codex/wif-poc",
+        "event_name": "workflow_dispatch",
+        "environment": null,
+        "iat": 1789549200,
+        "nbf": 1789548900,
+        "exp": 1789549800,
+        "jti_sha256": "c5c5ce0e8f1294d72125fd670374865edf20e985c22e16650dbaaa6fe54b0d6f"
+    },
+    "tailscale": {
+        "backend_state": "Running",
+        "node_id": "nExampleNode",
+        "dns_name": "github-actions.example.ts.net.",
+        "tags": ["tag:ci-wif-basic"],
+        "network_path": "derp",
+        "target": "sita-docker.nyala-betta.ts.net"
+    },
+    "stages": [
+        {
+            "name": "wif_exchange_and_join",
+            "status": "pass",
+            "duration_ms": 8243.15,
+            "reason_code": null
+        },
+        {
+            "name": "target_reachability",
+            "status": "pass",
+            "duration_ms": 422.81,
+            "reason_code": null
+        },
+        {
+            "name": "tailscale_ssh",
+            "status": "pass",
+            "duration_ms": 717.44,
+            "reason_code": null
+        }
+    ],
+    "integrity": {
+        "generated_at": "2026-09-16T09:02:31.418Z",
+        "collector_version": "0.1.0",
+        "policy_version": "wif-basic-pilot-1"
+    }
+}

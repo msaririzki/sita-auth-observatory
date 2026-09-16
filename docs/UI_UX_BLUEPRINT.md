@@ -32,14 +32,14 @@ Prinsip utama:
 
 ### Token Warna Semantik
 
-| Fungsi | Warna | Catatan |
-|---|---|---|
-| Informasi | Biru | Navigasi aktif dan metadata |
-| Lulus/Allow | Hijau | Selalu disertai teks/icon |
-| Ditolak/Deny | Merah | Selalu disertai alasan |
-| Peringatan | Amber | Data parsial atau faktor pengganggu |
-| Tidak tersedia | Abu-abu | Tidak dihitung sebagai gagal |
-| Integritas | Indigo | Digest dan provenance |
+| Fungsi         | Warna   | Catatan                             |
+| -------------- | ------- | ----------------------------------- |
+| Informasi      | Biru    | Navigasi aktif dan metadata         |
+| Lulus/Allow    | Hijau   | Selalu disertai teks/icon           |
+| Ditolak/Deny   | Merah   | Selalu disertai alasan              |
+| Peringatan     | Amber   | Data parsial atau faktor pengganggu |
+| Tidak tersedia | Abu-abu | Tidak dihitung sebagai gagal        |
+| Integritas     | Indigo  | Digest dan provenance               |
 
 ## 3. Struktur Navigasi
 
@@ -56,6 +56,13 @@ Settings
 Sidebar dapat diciutkan. Pada layar kecil, sidebar berubah menjadi drawer.
 Header menampilkan project switcher, waktu sinkronisasi terakhir, theme switch,
 dan menu pengguna.
+
+Halaman Experiments memiliki form kontrol dengan pilihan satu profil
+autentikasi, satu skenario, target yang diizinkan, Git ref, jumlah pengulangan,
+dan jeda antarpercobaan. Tombol menjalankan `workflow_dispatch` melalui backend,
+bukan membuat `git push`. Selama GitHub App belum dikonfigurasi, form hanya
+menyimpan rancangan sebagai draft dan menjelaskan kondisi tersebut kepada
+operator.
 
 ## 4. Halaman Overview
 
@@ -82,15 +89,15 @@ konteks tidak boleh ditampilkan.
 
 Menampilkan batch eksperimen dan progres pengulangan:
 
-| Kolom | Isi |
-|---|---|
-| Experiment | Nama dan ID |
-| SITA commit | Commit yang dikunci |
+| Kolom          | Isi                               |
+| -------------- | --------------------------------- |
+| Experiment     | Nama dan ID                       |
+| SITA commit    | Commit yang dikunci               |
 | Configurations | OAuth, WIF basic, WIF multi-claim |
-| Scenarios | Jumlah skenario aktif |
-| Repetitions | Selesai / target |
-| Data quality | Complete, partial, atau invalid |
-| Status | Draft, running, frozen, completed |
+| Scenarios      | Jumlah skenario aktif             |
+| Repetitions    | Selesai / target                  |
+| Data quality   | Complete, partial, atau invalid   |
+| Status         | Draft, running, frozen, completed |
 
 Detail eksperimen berisi matriks scenario × configuration × repetition.
 Setiap sel dapat dibuka menuju run sumber.
@@ -149,11 +156,11 @@ Setiap event menampilkan start, end, duration, status, dan reason code.
 
 ### Claims
 
-| Claim | Expected | Actual | Result | Source |
-|---|---|---|---|---|
-| `iss` | GitHub issuer | GitHub issuer | Pass | OIDC |
-| `aud` | Tailscale audience | Tailscale audience | Pass | OIDC |
-| `ref` | `refs/heads/main` | `refs/heads/test` | Fail | Policy |
+| Claim | Expected           | Actual             | Result | Source |
+| ----- | ------------------ | ------------------ | ------ | ------ |
+| `iss` | GitHub issuer      | GitHub issuer      | Pass   | OIDC   |
+| `aud` | Tailscale audience | Tailscale audience | Pass   | OIDC   |
+| `ref` | `refs/heads/main`  | `refs/heads/test`  | Fail   | Policy |
 
 Identifier panjang dipotong secara visual dengan tombol copy. Nilai lengkap
 tersedia melalui tooltip dan panel detail yang dapat diakses keyboard.

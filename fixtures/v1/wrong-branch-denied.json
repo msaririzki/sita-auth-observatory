@@ -1,0 +1,65 @@
+{
+    "schema_version": "1.0.0",
+    "experiment_id": "01K5A2T4S8PILOTEXPERIMENT02",
+    "trial_id": "01K5A2T4S8PILOTTRIAL00002",
+    "correlation_id": "a4d39d90-b254-45a8-b3d4-50bdd35684db",
+    "profile": "wif_multi_claim",
+    "scenario": "wrong_branch",
+    "repetition": 1,
+    "expected_decision": "deny",
+    "actual_decision": "deny",
+    "classification": "TN",
+    "reason_code": "REF_MISMATCH",
+    "github": {
+        "repository": "msaririzki/sita",
+        "repository_id": "123456789",
+        "repository_owner_id": "987654321",
+        "ref": "refs/heads/feature/untrusted",
+        "sha": "5af9cb06b2d83cee527077442b448685d53b8b66",
+        "workflow_ref": "msaririzki/sita/.github/workflows/auth-experiment.yml@refs/heads/feature/untrusted",
+        "job_workflow_ref": null,
+        "run_id": "35099458579",
+        "run_attempt": 1,
+        "event_name": "workflow_dispatch",
+        "actor_id": "1234567",
+        "runner_os": "Linux",
+        "runner_arch": "X64"
+    },
+    "oidc_claims": {
+        "iss": "https://token.actions.githubusercontent.com",
+        "aud": "api.tailscale.com/example",
+        "sub": "repo:msaririzki/sita:ref:refs/heads/feature/untrusted",
+        "repository": "msaririzki/sita",
+        "repository_id": "123456789",
+        "repository_owner_id": "987654321",
+        "ref": "refs/heads/feature/untrusted",
+        "workflow_ref": "msaririzki/sita/.github/workflows/auth-experiment.yml@refs/heads/feature/untrusted",
+        "job_workflow_ref": "msaririzki/sita/.github/workflows/auth-experiment.yml@refs/heads/feature/untrusted",
+        "event_name": "workflow_dispatch",
+        "environment": null,
+        "iat": 1789549200,
+        "nbf": 1789548900,
+        "exp": 1789549800,
+        "jti_sha256": "0bc429f59e2c2642c9fd21d0bd8a2241820d68e2bb7ad6e911014feca75bd45c"
+    },
+    "tailscale": null,
+    "stages": [
+        {
+            "name": "wif_exchange_and_join",
+            "status": "fail",
+            "duration_ms": 903.22,
+            "reason_code": "REF_MISMATCH"
+        },
+        {
+            "name": "target_reachability",
+            "status": "skipped",
+            "duration_ms": 0,
+            "reason_code": "AUTHENTICATION_DENIED"
+        }
+    ],
+    "integrity": {
+        "generated_at": "2026-09-16T09:10:03.018Z",
+        "collector_version": "0.1.0",
+        "policy_version": "wif-multi-claim-pilot-1"
+    }
+}

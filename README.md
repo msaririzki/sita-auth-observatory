@@ -18,5 +18,25 @@ bukti penelitian.
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
 - [UI/UX Blueprint](docs/UI_UX_BLUEPRINT.md)
 
-Implementasi belum dimulai. Keputusan arsitektur, data, metrik, batas keamanan,
-dan tahapan pengerjaan harus mengikuti dokumen perencanaan tersebut.
+Implementasi dimulai pada branch `codex/observatory-foundation`. Fondasi awal
+mencakup Laravel 13, Inertia 3, React 19, model eksperimen berurutan, dan halaman
+untuk merancang batch OAuth statis, WIF dasar, atau WIF multi-klaim.
+
+## Status Implementasi
+
+- Dashboard dan rancangan eksperimen berurutan tersedia.
+- Backend dapat mengirim satu trial pertama melalui `workflow_dispatch` tanpa
+  menaruh credential GitHub di browser.
+- Klik ganda ditahan dengan penguncian status database dan permintaan dispatch
+  tidak diulang otomatis.
+- JSON Schema bukti v1 dan fixture TP/TN tersedia pada `schemas/` dan
+  `fixtures/`.
+- Algoritma klasifikasi TP, TN, FP, dan FN telah memiliki unit test.
+- Workflow pilot WIF dasar disiapkan pada branch `codex/wif-poc` repositori
+  SITA. OAuth statis dan WIF multi-klaim belum dinyatakan siap.
+
+Validasi kontrak bukti dijalankan dengan:
+
+```bash
+npm run evidence:validate
+```

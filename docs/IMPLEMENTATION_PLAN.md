@@ -2,14 +2,14 @@
 
 ## 1. Status Dokumen
 
-| Atribut | Nilai |
-|---|---|
-| Status | Disetujui untuk menjadi dasar implementasi |
-| Versi | 1.0.0 |
-| Tanggal | 16 September 2026 |
-| Pemilik | Muhamad Sari Rizki |
-| Repositori objek penelitian | `msaririzki/sita` |
-| Repositori instrumen penelitian | `msaririzki/sita-auth-observatory` |
+| Atribut                         | Nilai                                      |
+| ------------------------------- | ------------------------------------------ |
+| Status                          | Disetujui untuk menjadi dasar implementasi |
+| Versi                           | 1.0.0                                      |
+| Tanggal                         | 16 September 2026                          |
+| Pemilik                         | Muhamad Sari Rizki                         |
+| Repositori objek penelitian     | `msaririzki/sita`                          |
+| Repositori instrumen penelitian | `msaririzki/sita-auth-observatory`         |
 
 Dokumen ini adalah sumber kebenaran awal untuk ruang lingkup, arsitektur,
 teknologi, data, metrik, keamanan, dan urutan implementasi. Perubahan yang
@@ -113,31 +113,31 @@ flowchart LR
 
 ### Penempatan
 
-| Komponen | Lokasi | Alasan |
-|---|---|---|
-| Collector | GitHub-hosted runner | Mengamati konteks asli workflow |
-| Bukti primer | GitHub Actions Artifact | Tetap tersedia walaupun autentikasi atau deployment gagal |
-| Target SITA | VM Docker privat Proxmox | Objek pembuktian akses dan deployment |
-| Observatory | VM `sita-observer` terpisah | Instrumen tidak ikut gagal bersama target |
-| Database | PostgreSQL pada stack Observatory | Mendukung relasi, JSONB, dan agregasi data |
-| Akses dashboard | Tailscale/LAN | Membatasi paparan data penelitian |
+| Komponen        | Lokasi                            | Alasan                                                    |
+| --------------- | --------------------------------- | --------------------------------------------------------- |
+| Collector       | GitHub-hosted runner              | Mengamati konteks asli workflow                           |
+| Bukti primer    | GitHub Actions Artifact           | Tetap tersedia walaupun autentikasi atau deployment gagal |
+| Target SITA     | VM Docker privat Proxmox          | Objek pembuktian akses dan deployment                     |
+| Observatory     | VM `sita-observer` terpisah       | Instrumen tidak ikut gagal bersama target                 |
+| Database        | PostgreSQL pada stack Observatory | Mendukung relasi, JSONB, dan agregasi data                |
+| Akses dashboard | Tailscale/LAN                     | Membatasi paparan data penelitian                         |
 
 ## 6. Keputusan Teknologi
 
 ### Aplikasi Web
 
-| Lapisan | Teknologi | Keputusan |
-|---|---|---|
-| Backend | Laravel 13, PHP 8.5 | Modular monolith; validasi, queue, scheduler, dan pengujian matang |
-| Frontend | Inertia 2, React 19, TypeScript | UI interaktif tanpa API terpisah yang tidak diperlukan |
-| Styling | Tailwind CSS 4 | Design token, responsive layout, dan konsistensi visual |
-| Komponen | Radix UI primitives + komponen lokal | Aksesibilitas dan kontrol penuh atas tampilan |
-| Ikon | Lucide | Ikon konsisten dan ringan |
-| Grafik | Recharts | Grafik React yang cukup untuk analisis eksperimen |
-| Tabel | TanStack Table | Sort, filter, pagination, dan kolom data penelitian |
-| Database | PostgreSQL 18 | Relasional, JSONB, constraint, dan agregasi |
-| Queue | Laravel database queue | Cukup untuk skala penelitian tanpa Redis wajib |
-| Deployment | Docker Compose | Reproduksibel pada VM Proxmox |
+| Lapisan    | Teknologi                            | Keputusan                                                          |
+| ---------- | ------------------------------------ | ------------------------------------------------------------------ |
+| Backend    | Laravel 13, PHP 8.5                  | Modular monolith; validasi, queue, scheduler, dan pengujian matang |
+| Frontend   | Inertia 3, React 19, TypeScript      | UI interaktif tanpa API terpisah yang tidak diperlukan             |
+| Styling    | Tailwind CSS 4                       | Design token, responsive layout, dan konsistensi visual            |
+| Komponen   | Radix UI primitives + komponen lokal | Aksesibilitas dan kontrol penuh atas tampilan                      |
+| Ikon       | Lucide                               | Ikon konsisten dan ringan                                          |
+| Grafik     | Recharts                             | Grafik React yang cukup untuk analisis eksperimen                  |
+| Tabel      | TanStack Table                       | Sort, filter, pagination, dan kolom data penelitian                |
+| Database   | PostgreSQL 18                        | Relasional, JSONB, constraint, dan agregasi                        |
+| Queue      | Laravel database queue               | Cukup untuk skala penelitian tanpa Redis wajib                     |
+| Deployment | Docker Compose                       | Reproduksibel pada VM Proxmox                                      |
 
 Laravel dipilih karena tim telah menggunakan Laravel dan React pada SITA.
 Observatory tetap menjadi proyek mandiri, tetapi beban belajar dan risiko
@@ -145,15 +145,15 @@ implementasi lebih rendah daripada memperkenalkan stack yang seluruhnya baru.
 
 ### Collector
 
-| Kebutuhan | Teknologi |
-|---|---|
-| Bahasa | TypeScript strict |
-| Runtime | Node.js LTS yang didukung GitHub Actions |
-| GitHub Action API | `@actions/core` |
-| JWT/JWKS | `jose` |
-| Validasi skema | AJV + JSON Schema |
-| Pengujian | Vitest |
-| Distribusi | JavaScript action yang dikompilasi dan dipin ke commit SHA |
+| Kebutuhan         | Teknologi                                                  |
+| ----------------- | ---------------------------------------------------------- |
+| Bahasa            | TypeScript strict                                          |
+| Runtime           | Node.js LTS yang didukung GitHub Actions                   |
+| GitHub Action API | `@actions/core`                                            |
+| JWT/JWKS          | `jose`                                                     |
+| Validasi skema    | AJV + JSON Schema                                          |
+| Pengujian         | Vitest                                                     |
+| Distribusi        | JavaScript action yang dikompilasi dan dipin ke commit SHA |
 
 Collector hanya menyimpan allowlist klaim. Token OIDC mentah tetap berada di
 memori selama pemeriksaan dan tidak ditulis ke log, file, output, atau database.
@@ -169,6 +169,24 @@ Importer mendukung dua jalur:
 Credential GitHub App berada pada VM Observer, bukan pada workflow deployment,
 dan tidak dihitung sebagai credential pada perlakuan eksperimen. Jalur manual
 tetap tersedia jika sinkronisasi otomatis gagal.
+
+### Experiment Control Plane
+
+Observatory menyediakan kontrol untuk membuat dan memicu eksperimen. Backend
+memanggil `workflow_dispatch` GitHub Actions menggunakan GitHub App dengan izin
+minimum. Credential tidak pernah dikirim ke browser. Kontrol ini tidak membuat
+commit atau `git push`; operator memilih `ref` atau commit yang sudah ada
+sehingga ketiga konfigurasi menguji source yang sama.
+
+Setiap eksperimen hanya menjalankan satu konfigurasi autentikasi. Pengulangan
+dijalankan berurutan dengan jeda yang tercatat untuk mengurangi pengaruh beban
+runner, jalur DERP, dan VM target. Perbandingan antarkonfigurasi dilakukan
+setelah batch OAuth statis, WIF dasar, dan WIF multi-klaim selesai.
+
+Status tingkat tinggi diperbarui dari GitHub webhook. Event tahap yang lebih
+rinci dikirim oleh workflow setelah batas pengukuran berakhir menggunakan token
+OIDC dengan audience khusus Observatory. Browser menerima pembaruan melalui
+Server-Sent Events; token OIDC mentah tidak disimpan.
 
 ## 7. Konfigurasi Eksperimen
 
@@ -217,17 +235,17 @@ evidence/
 
 ### Identitas dan Korelasi
 
-| Field | Fungsi |
-|---|---|
-| `schema_version` | Menentukan kontrak bukti |
-| `experiment_id` | Menghubungkan seluruh pengulangan satu eksperimen |
-| `run_id` | GitHub Actions run ID |
-| `run_attempt` | Membedakan pengulangan ulang run yang sama |
-| `correlation_id` | UUID unik lintas event |
-| `configuration` | `oauth_static`, `wif_basic`, atau `wif_multiclaim` |
-| `scenario` | Skenario gangguan terkontrol |
-| `repetition` | Nomor pengulangan |
-| `expected_decision` | `allow` atau `deny` |
+| Field               | Fungsi                                             |
+| ------------------- | -------------------------------------------------- |
+| `schema_version`    | Menentukan kontrak bukti                           |
+| `experiment_id`     | Menghubungkan seluruh pengulangan satu eksperimen  |
+| `run_id`            | GitHub Actions run ID                              |
+| `run_attempt`       | Membedakan pengulangan ulang run yang sama         |
+| `correlation_id`    | UUID unik lintas event                             |
+| `configuration`     | `oauth_static`, `wif_basic`, atau `wif_multiclaim` |
+| `scenario`          | Skenario gangguan terkontrol                       |
+| `repetition`        | Nomor pengulangan                                  |
+| `expected_decision` | `allow` atau `deny`                                |
 
 ### Metadata GitHub
 
@@ -293,19 +311,19 @@ Prinsip pemrosesan:
 
 ## 10. Model Data
 
-| Tabel | Isi utama |
-|---|---|
-| `experiment_definitions` | Nama, tujuan, konfigurasi, dan jumlah pengulangan |
-| `experiment_scenarios` | Input gangguan dan expected decision |
-| `experiment_runs` | Satu eksekusi GitHub Actions |
-| `authentication_events` | Event dan durasi setiap tahap |
-| `claim_checks` | Expected, actual, result, dan reason code |
-| `network_observations` | Node, IP, tag, jalur, target, dan reachability |
-| `deployment_results` | Commit, image digest, container, dan health result |
-| `cleanup_checks` | Waktu logout, penghapusan node, dan residual access |
-| `evidence_artifacts` | Artifact ID, URL, digest, ukuran, dan expiry |
-| `policy_versions` | Definisi aturan yang digunakan setiap run |
-| `import_batches` | Status dan audit proses impor |
+| Tabel                    | Isi utama                                           |
+| ------------------------ | --------------------------------------------------- |
+| `experiment_definitions` | Nama, tujuan, konfigurasi, dan jumlah pengulangan   |
+| `experiment_scenarios`   | Input gangguan dan expected decision                |
+| `experiment_runs`        | Satu eksekusi GitHub Actions                        |
+| `authentication_events`  | Event dan durasi setiap tahap                       |
+| `claim_checks`           | Expected, actual, result, dan reason code           |
+| `network_observations`   | Node, IP, tag, jalur, target, dan reachability      |
+| `deployment_results`     | Commit, image digest, container, dan health result  |
+| `cleanup_checks`         | Waktu logout, penghapusan node, dan residual access |
+| `evidence_artifacts`     | Artifact ID, URL, digest, ukuran, dan expiry        |
+| `policy_versions`        | Definisi aturan yang digunakan setiap run           |
+| `import_batches`         | Status dan audit proses impor                       |
 
 Constraint utama:
 
@@ -406,18 +424,18 @@ Trace completeness = captured required events / all required events
 
 ## 13. Skenario Eksperimen
 
-| Kode | Skenario | Expected |
-|---|---|---|
-| S01 | Repositori, branch, workflow, dan audience sah | Allow |
-| S02 | Branch tidak diizinkan | Deny |
-| S03 | Workflow berbeda dalam repositori yang sama | Deny |
-| S04 | Repositori berbeda | Deny |
-| S05 | Audience salah | Deny |
-| S06 | Token dimodifikasi pada laboratorium | Deny |
-| S07 | Token kedaluwarsa | Deny |
-| S08 | Tag Tailscale tidak diizinkan | Deny |
-| S09 | Target VM atau port tidak diizinkan | Deny |
-| S10 | Pekerjaan selesai dan akses diperiksa ulang | Deny setelah selesai |
+| Kode | Skenario                                       | Expected             |
+| ---- | ---------------------------------------------- | -------------------- |
+| S01  | Repositori, branch, workflow, dan audience sah | Allow                |
+| S02  | Branch tidak diizinkan                         | Deny                 |
+| S03  | Workflow berbeda dalam repositori yang sama    | Deny                 |
+| S04  | Repositori berbeda                             | Deny                 |
+| S05  | Audience salah                                 | Deny                 |
+| S06  | Token dimodifikasi pada laboratorium           | Deny                 |
+| S07  | Token kedaluwarsa                              | Deny                 |
+| S08  | Tag Tailscale tidak diizinkan                  | Deny                 |
+| S09  | Target VM atau port tidak diizinkan            | Deny                 |
+| S10  | Pekerjaan selesai dan akses diperiksa ulang    | Deny setelah selesai |
 
 Tidak semua skenario berlaku pada OAuth. Dashboard harus menampilkan `N/A`,
 bukan menganggapnya lulus atau gagal. Skenario final dijalankan minimal lima
@@ -450,15 +468,15 @@ kali; sepuluh pengulangan direkomendasikan bila waktu dan kuota memungkinkan.
 
 ## 16. Strategi Pengujian
 
-| Jenis | Fokus |
-|---|---|
-| Unit | Formula metrik, klasifikasi TP/TN/FP/FN, reason code |
-| Contract | Collector output sesuai JSON Schema |
-| Security | Token/secret tidak pernah tersimpan atau tercetak |
-| Integration | Artifact → importer → database → dashboard |
-| Fixture | Bukti sintetik untuk semua status dan edge case |
-| Browser | Filter, tabel, detail run, ekspor, akses keyboard |
-| Resilience | Artifact rusak, duplikat, terlambat, dan versi tidak dikenal |
+| Jenis       | Fokus                                                        |
+| ----------- | ------------------------------------------------------------ |
+| Unit        | Formula metrik, klasifikasi TP/TN/FP/FN, reason code         |
+| Contract    | Collector output sesuai JSON Schema                          |
+| Security    | Token/secret tidak pernah tersimpan atau tercetak            |
+| Integration | Artifact → importer → database → dashboard                   |
+| Fixture     | Bukti sintetik untuk semua status dan edge case              |
+| Browser     | Filter, tabel, detail run, ekspor, akses keyboard            |
+| Resilience  | Artifact rusak, duplikat, terlambat, dan versi tidak dikenal |
 
 Pengujian formula memakai dataset kecil dengan hasil manual yang telah
 diketahui. Pengujian browser memakai selector berdasarkan role, label, dan teks

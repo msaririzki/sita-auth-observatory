@@ -1,0 +1,163 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://observatory.sita.local/schemas/v1/trial-evidence.schema.json",
+    "title": "SITA authentication trial evidence",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "schema_version",
+        "experiment_id",
+        "trial_id",
+        "correlation_id",
+        "profile",
+        "scenario",
+        "repetition",
+        "expected_decision",
+        "actual_decision",
+        "classification",
+        "github",
+        "stages",
+        "integrity"
+    ],
+    "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "experiment_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "trial_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "correlation_id": { "type": "string", "format": "uuid" },
+        "profile": {
+            "enum": ["oauth_static", "wif_basic", "wif_multi_claim"]
+        },
+        "scenario": {
+            "enum": [
+                "valid",
+                "wrong_audience",
+                "wrong_branch",
+                "wrong_workflow",
+                "wrong_repository",
+                "wrong_environment",
+                "revoked_credential"
+            ]
+        },
+        "repetition": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "expected_decision": { "$ref": "#/$defs/decision" },
+        "actual_decision": { "$ref": "#/$defs/decision" },
+        "classification": { "enum": ["TP", "TN", "FP", "FN"] },
+        "reason_code": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z0-9_]+$"
+        },
+        "github": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+                "repository",
+                "repository_id",
+                "repository_owner_id",
+                "ref",
+                "sha",
+                "workflow_ref",
+                "run_id",
+                "run_attempt",
+                "event_name",
+                "runner_os",
+                "runner_arch"
+            ],
+            "properties": {
+                "repository": { "type": "string" },
+                "repository_id": { "type": "string", "pattern": "^[0-9]+$" },
+                "repository_owner_id": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                },
+                "ref": { "type": "string" },
+                "sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+                "workflow_ref": { "type": "string" },
+                "job_workflow_ref": { "type": ["string", "null"] },
+                "run_id": { "type": "string", "pattern": "^[0-9]+$" },
+                "run_attempt": { "type": "integer", "minimum": 1 },
+                "event_name": { "type": "string" },
+                "actor_id": { "type": ["string", "null"] },
+                "runner_os": { "type": "string" },
+                "runner_arch": { "type": "string" }
+            }
+        },
+        "oidc_claims": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "properties": {
+                "iss": { "type": "string", "format": "uri" },
+                "aud": {
+                    "oneOf": [
+                        { "type": "string" },
+                        {
+                            "type": "array",
+                            "items": { "type": "string" },
+                            "minItems": 1
+                        }
+                    ]
+                },
+                "sub": { "type": "string" },
+                "repository": { "type": "string" },
+                "repository_id": { "type": "string" },
+                "repository_owner_id": { "type": "string" },
+                "ref": { "type": "string" },
+                "workflow_ref": { "type": "string" },
+                "job_workflow_ref": { "type": "string" },
+                "event_name": { "type": "string" },
+                "environment": { "type": ["string", "null"] },
+                "iat": { "type": "integer" },
+                "nbf": { "type": "integer" },
+                "exp": { "type": "integer" },
+                "jti_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            }
+        },
+        "tailscale": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "properties": {
+                "backend_state": { "type": "string" },
+                "node_id": { "type": ["string", "null"] },
+                "dns_name": { "type": ["string", "null"] },
+                "tags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "uniqueItems": true
+                },
+                "network_path": { "enum": ["direct", "derp", "unknown"] },
+                "target": { "type": "string" }
+            }
+        },
+        "stages": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/stage" }
+        },
+        "integrity": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["generated_at", "collector_version"],
+            "properties": {
+                "generated_at": { "type": "string", "format": "date-time" },
+                "collector_version": { "type": "string" },
+                "policy_version": { "type": ["string", "null"] }
+            }
+        }
+    },
+    "$defs": {
+        "decision": { "enum": ["allow", "deny"] },
+        "stage": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "status", "duration_ms"],
+            "properties": {
+                "name": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+                "status": { "enum": ["pass", "fail", "skipped"] },
+                "duration_ms": { "type": "number", "minimum": 0 },
+                "reason_code": {
+                    "type": ["string", "null"],
+                    "pattern": "^[A-Z0-9_]+$"
+                }
+            }
+        }
+    }
+}
