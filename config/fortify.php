@@ -166,9 +166,9 @@ return [
     |
     */
 
-    'features' => [
+    'features' => array_values(array_filter([
         /* @chisel-registration */
-        Features::registration(),
+        env('FORTIFY_REGISTRATION_ENABLED', true) ? Features::registration() : null,
         /* @end-chisel-registration */
         Features::resetPasswords(),
         /* @chisel-email-verification */
@@ -186,6 +186,6 @@ return [
             'confirmPassword' => true,
         ]),
         /* @end-chisel-passkeys */
-    ],
+    ])),
 
 ];

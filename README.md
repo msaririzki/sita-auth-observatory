@@ -40,3 +40,16 @@ Validasi kontrak bukti dijalankan dengan:
 ```bash
 npm run evidence:validate
 ```
+
+## Production Docker deployment
+
+The production stack runs Laravel behind an Nginx container and binds the web
+service only to the host loopback interface. Copy `.env.example` to
+`.env.production`, set production values, and run:
+
+```bash
+docker compose -f compose.production.yml up -d --build
+```
+
+The default origin is `http://127.0.0.1:8012`. A reverse proxy or Cloudflare
+Tunnel can publish that origin without exposing the container port directly.
