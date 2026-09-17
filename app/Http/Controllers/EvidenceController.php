@@ -7,7 +7,6 @@ use App\Models\Experiment;
 use App\Models\ExperimentTrial;
 use App\Models\StageEvent;
 use App\Services\TrialEvidenceImporter;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -29,16 +28,6 @@ class EvidenceController extends Controller
             ],
             'trials' => $trials->map(fn (ExperimentTrial $trial): array => $this->trialPayload($experiment, $trial)),
         ]);
-    }
-
-    public function progress(Experiment $experiment): JsonResponse
-    {
-        $trials = $experiment->trials()->with('stageEvents')->orderBy('sequence_number')->get();
-
-        return response()->json([
-            'experiment' => ['status' => $experiment->status->value],
-            'trials' => $trials->map(fn (ExperimentTrial $trial): array => $this->trialPayload($experiment, $trial)),
-        ])->header('Cache-Control', 'no-store');
     }
 
     public function events(Experiment $experiment): StreamedResponse
