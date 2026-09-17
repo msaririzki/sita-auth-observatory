@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Enums\Decision;
 use App\Enums\ExperimentStatus;
 use App\Enums\TrialStatus;
+use App\Jobs\DispatchExperimentTrial;
 use App\Models\Experiment;
 use App\Models\User;
+use App\Services\GitHubWorkflowDispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ExperimentTest extends TestCase
@@ -87,7 +90,7 @@ class ExperimentTest extends TestCase
         $this->assertDatabaseEmpty('experiments');
     }
 
-    public function test_dispatch_sends_only_the_first_pending_trial_to_github(): void
+    public function test_dispatch_queues_the_first_pending_trial_for_the_worker(): void
     {
         config([
             'observatory.github.token' => 'test-token',
@@ -99,6 +102,7 @@ class ExperimentTest extends TestCase
         Http::fake([
             'api.github.com/*' => Http::response(status: 204),
         ]);
+        Queue::fake();
 
         $user = $this->createUser('dispatch');
 
@@ -120,7 +124,7 @@ class ExperimentTest extends TestCase
 
         $this->assertSame(ExperimentStatus::Queued, $experiment->refresh()->status);
         $this->assertSame(
-            [TrialStatus::Dispatched, TrialStatus::Pending, TrialStatus::Pending],
+            [TrialStatus::Pending, TrialStatus::Pending, TrialStatus::Pending],
             $experiment->trials()
                 ->orderBy('sequence_number')
                 ->get()
@@ -128,20 +132,17 @@ class ExperimentTest extends TestCase
                 ->all(),
         );
 
-        Http::assertSent(function (Request $request) use ($experiment): bool {
-            return $request->url() === 'https://api.github.com/repos/msaririzki/sita/actions/workflows/auth-experiment.yml/dispatches'
-                && $request->hasHeader('Authorization', 'Bearer test-token')
-                && $request['ref'] === 'main'
-                && $request['inputs']['experiment_id'] === $experiment->id
-                && $request['inputs']['profile'] === 'wif_basic'
-                && $request['inputs']['repetition'] === '1';
-        });
+        Queue::assertPushed(
+            DispatchExperimentTrial::class,
+            fn (DispatchExperimentTrial $job): bool => $job->experimentId === $experiment->id,
+        );
+        Http::assertNothingSent();
 
         $this->actingAs($user)
             ->post(route('experiments.dispatch', $experiment))
             ->assertSessionHasErrors('experiment');
 
-        Http::assertSentCount(1);
+        Queue::assertPushed(DispatchExperimentTrial::class, 1);
     }
 
     public function test_dispatch_can_use_a_repository_scoped_github_app_identity(): void
@@ -191,6 +192,9 @@ class ExperimentTest extends TestCase
             ->post(route('experiments.dispatch', $experiment))
             ->assertRedirect(route('experiments.show', $experiment));
 
+        (new DispatchExperimentTrial($experiment->id))
+            ->handle(app(GitHubWorkflowDispatcher::class));
+
         Http::assertSent(function (Request $request): bool {
             return $request->url() === 'https://api.github.com/app/installations/789012/access_tokens'
                 && str_starts_with((string) $request->header('Authorization')[0], 'Bearer ey');
@@ -230,7 +234,10 @@ class ExperimentTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('experiments.dispatch', $experiment))
-            ->assertSessionHasErrors('experiment');
+            ->assertRedirect(route('experiments.show', $experiment));
+
+        (new DispatchExperimentTrial($experiment->id))
+            ->handle(app(GitHubWorkflowDispatcher::class));
 
         $this->assertSame(ExperimentStatus::Failed, $experiment->refresh()->status);
 
@@ -238,6 +245,44 @@ class ExperimentTest extends TestCase
         $this->assertSame(TrialStatus::Failed, $trial->status);
         $this->assertSame('workflow_dispatch', $trial->failure_stage);
         $this->assertSame('RequestException', $trial->failure_reason);
+        Http::assertSentCount(1);
+    }
+
+    public function test_worker_reserves_only_one_trial_until_final_evidence_arrives(): void
+    {
+        config([
+            'observatory.github.token' => 'test-token',
+            'observatory.github.owner' => 'msaririzki',
+            'observatory.github.repository' => 'sita',
+            'observatory.github.workflow' => 'auth-experiment.yml',
+        ]);
+        Http::fake(['api.github.com/*' => Http::response(status: 204)]);
+
+        $experiment = Experiment::query()->create([
+            'name' => 'Sequential batch',
+            'profile' => 'wif_basic',
+            'scenario' => 'valid',
+            'expected_decision' => 'allow',
+            'target' => 'sita-docker',
+            'git_ref' => 'main',
+            'repetitions' => 3,
+            'cooldown_seconds' => 45,
+            'status' => ExperimentStatus::Queued,
+        ]);
+        $experiment->trials()->createMany([
+            ['sequence_number' => 1],
+            ['sequence_number' => 2],
+            ['sequence_number' => 3],
+        ]);
+
+        $job = new DispatchExperimentTrial($experiment->id);
+        $job->handle(app(GitHubWorkflowDispatcher::class));
+        $job->handle(app(GitHubWorkflowDispatcher::class));
+
+        $this->assertSame(
+            [TrialStatus::Dispatched, TrialStatus::Pending, TrialStatus::Pending],
+            $experiment->trials()->orderBy('sequence_number')->get()->pluck('status')->all(),
+        );
         Http::assertSentCount(1);
     }
 

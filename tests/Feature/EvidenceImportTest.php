@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Enums\TrialStatus;
+use App\Jobs\DispatchExperimentTrial;
 use App\Models\Experiment;
 use App\Models\User;
 use App\Services\TrialEvidenceImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -109,6 +111,31 @@ class EvidenceImportTest extends TestCase
         $this->assertSame(TrialStatus::Completed, $trial->status);
         $this->assertSame(7, $trial->stageEvents()->count());
         $this->assertEquals(13931.4, $trial->total_duration_ms);
+    }
+
+    public function test_import_schedules_the_next_trial_after_the_configured_cooldown(): void
+    {
+        Queue::fake();
+        $data = $this->evidence();
+        $experiment = Experiment::query()->findOrFail($data['experiment_id']);
+        $experiment->update([
+            'repetitions' => 2,
+            'cooldown_seconds' => 45,
+        ]);
+        $experiment->trials()->create(['sequence_number' => 2]);
+
+        $trial = app(TrialEvidenceImporter::class)->import($data);
+
+        $this->assertSame(TrialStatus::Completed, $trial->status);
+        $this->assertSame('running', $experiment->fresh()->status->value);
+        $this->assertSame(
+            [TrialStatus::Completed, TrialStatus::Pending],
+            $experiment->trials()->orderBy('sequence_number')->get()->pluck('status')->all(),
+        );
+        Queue::assertPushed(
+            DispatchExperimentTrial::class,
+            fn (DispatchExperimentTrial $job): bool => $job->experimentId === $experiment->id,
+        );
     }
 
     public function test_upload_requires_login_and_accepts_a_bound_json_file(): void

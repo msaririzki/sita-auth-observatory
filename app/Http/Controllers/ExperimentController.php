@@ -7,17 +7,14 @@ use App\Enums\ExperimentScenario;
 use App\Enums\ExperimentStatus;
 use App\Enums\TrialStatus;
 use App\Http\Requests\StoreExperimentRequest;
+use App\Jobs\DispatchExperimentTrial;
 use App\Models\Experiment;
-use App\Models\ExperimentTrial;
 use App\Services\GitHubWorkflowDispatcher;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 class ExperimentController extends Controller
 {
@@ -117,7 +114,7 @@ class ExperimentController extends Controller
             ]);
         }
 
-        $trial = DB::transaction(function () use ($experiment): ExperimentTrial {
+        $queuedExperiment = DB::transaction(function () use ($experiment): Experiment {
             $lockedExperiment = Experiment::query()
                 ->lockForUpdate()
                 ->findOrFail($experiment->id);
@@ -128,60 +125,32 @@ class ExperimentController extends Controller
                 ]);
             }
 
-            $trial = $lockedExperiment->trials()
+            $hasPendingTrial = $lockedExperiment->trials()
                 ->where('status', TrialStatus::Pending)
-                ->orderBy('sequence_number')
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $trial->update([
-                'status' => TrialStatus::Dispatched,
-                'started_at' => now(),
-            ]);
+                ->exists();
+            if (! $hasPendingTrial) {
+                throw ValidationException::withMessages([
+                    'experiment' => 'Eksperimen tidak memiliki trial yang dapat dijalankan.',
+                ]);
+            }
 
             $lockedExperiment->update([
                 'status' => ExperimentStatus::Queued,
                 'started_at' => now(),
             ]);
 
-            return $trial;
+            return $lockedExperiment->fresh();
         });
 
-        try {
-            $dispatcher->dispatch($experiment->fresh(), $trial->fresh());
-        } catch (ConnectionException|RequestException $exception) {
-            $this->recordDispatchFailure($experiment, $trial, $exception);
-
-            throw ValidationException::withMessages([
-                'experiment' => 'GitHub Actions tidak dapat menerima eksperimen. Detail teknis telah dicatat.',
-            ]);
-        }
+        DispatchExperimentTrial::dispatch($queuedExperiment->id)
+            ->onQueue('experiment-dispatch')
+            ->afterCommit();
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => "Permintaan {$experiment->name} sudah diterima GitHub Actions. Pemantauan proses dibuka.",
+            'message' => "Eksperimen {$experiment->name} masuk antrean Observatory. Pemantauan proses dibuka.",
         ]);
 
         return to_route('experiments.show', $experiment);
-    }
-
-    private function recordDispatchFailure(
-        Experiment $experiment,
-        ExperimentTrial $trial,
-        Throwable $exception,
-    ): void {
-        DB::transaction(function () use ($experiment, $trial, $exception): void {
-            $trial->update([
-                'status' => TrialStatus::Failed,
-                'failure_stage' => 'workflow_dispatch',
-                'failure_reason' => class_basename($exception),
-                'finished_at' => now(),
-            ]);
-
-            $experiment->update([
-                'status' => ExperimentStatus::Failed,
-                'finished_at' => now(),
-            ]);
-        });
     }
 }

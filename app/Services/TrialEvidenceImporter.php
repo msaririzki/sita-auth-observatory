@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\Decision;
 use App\Enums\ExperimentStatus;
 use App\Enums\TrialStatus;
+use App\Jobs\DispatchExperimentTrial;
 use App\Models\Experiment;
 use App\Models\ExperimentTrial;
 use Illuminate\Support\Facades\DB;
@@ -26,8 +27,9 @@ class TrialEvidenceImporter
     ): ExperimentTrial {
         $data = Validator::make(['evidence' => $evidence], $this->rules())->validate()['evidence'];
         $digest = hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
+        $nextTrialDelay = null;
 
-        return DB::transaction(function () use ($data, $digest, $signatureVerified, $source, $verifiedSubmissionClaims): ExperimentTrial {
+        $trial = DB::transaction(function () use ($data, $digest, $signatureVerified, $source, $verifiedSubmissionClaims, &$nextTrialDelay): ExperimentTrial {
             $experiment = Experiment::query()->lockForUpdate()->whereKey($data['experiment_id'])->firstOrFail();
             $trial = $experiment->trials()->lockForUpdate()->whereKey($data['trial_id'])->firstOrFail();
             $matches = $experiment->profile->value === $data['profile']
@@ -135,8 +137,20 @@ class TrialEvidenceImporter
                 'finished_at' => $finished ? $data['integrity']['generated_at'] : null,
             ]);
 
+            if (! $finished) {
+                $nextTrialDelay = $experiment->cooldown_seconds;
+            }
+
             return $trial->refresh();
         });
+
+        if ($nextTrialDelay !== null) {
+            DispatchExperimentTrial::dispatch($trial->experiment_id)
+                ->onQueue('experiment-dispatch')
+                ->delay(now()->addSeconds($nextTrialDelay));
+        }
+
+        return $trial;
     }
 
     /** @param array<string, mixed> $stage */

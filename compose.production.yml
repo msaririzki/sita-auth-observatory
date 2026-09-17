@@ -42,5 +42,31 @@ services:
             retries: 3
             start_period: 10s
 
+    worker:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile
+            target: application
+        image: sita-auth-observatory-app:${APP_IMAGE_TAG:-local}
+        restart: unless-stopped
+        env_file:
+            - .env.production
+        volumes:
+            - observatory_storage:/var/www/html/storage
+        depends_on:
+            app:
+                condition: service_healthy
+        command:
+            [
+                'php',
+                'artisan',
+                'queue:work',
+                'database',
+                '--queue=experiment-dispatch',
+                '--sleep=1',
+                '--tries=1',
+                '--timeout=60',
+            ]
+
 volumes:
     observatory_storage:
