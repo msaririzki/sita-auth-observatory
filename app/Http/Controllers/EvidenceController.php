@@ -23,7 +23,7 @@ class EvidenceController extends Controller
         return Inertia::render('experiments/show', [
             'experiment' => [
                 'id' => $experiment->id, 'name' => $experiment->name,
-                'profile' => $experiment->profile->label(), 'scenario' => $experiment->scenario->label(),
+                'profile' => $experiment->profile->value, 'scenario' => $experiment->scenario->value,
                 'status' => $experiment->status->value, 'git_ref' => $experiment->git_ref, 'target' => $experiment->target,
             ],
             'trials' => $trials->map(fn (ExperimentTrial $trial): array => $this->trialPayload($experiment, $trial)),
