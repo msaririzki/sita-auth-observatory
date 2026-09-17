@@ -29,7 +29,7 @@ class EvidenceImportTest extends TestCase
         $this->assertNull($trial->tailnet_join_duration_ms);
         $this->assertEquals(9383.4, $trial->total_duration_ms);
         $this->assertSame(5, $trial->stageEvents()->count());
-        $this->assertNull($trial->stageEvents()->where('stage', 'preflight')->sole()->duration_ms);
+        $this->assertEquals(0.0, $trial->stageEvents()->where('stage', 'preflight')->sole()->duration_ms);
         $this->assertFalse($trial->sanitized_metadata['signature_verified_by_observatory']);
 
         $this->actingAs(User::factory()->create(['email_verified_at' => now()]))

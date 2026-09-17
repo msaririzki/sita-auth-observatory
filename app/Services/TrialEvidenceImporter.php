@@ -136,8 +136,7 @@ class TrialEvidenceImporter
     /** @param array<string, mixed> $stage */
     private function duration(array $stage): ?float
     {
-        return $stage['status'] === 'skipped' || in_array($stage['name'], ['preflight', 'oidc_claim_capture'], true)
-            ? null : (float) $stage['duration_ms'];
+        return $stage['status'] === 'skipped' ? null : (float) $stage['duration_ms'];
     }
 
     /** @return array<string, mixed> */
