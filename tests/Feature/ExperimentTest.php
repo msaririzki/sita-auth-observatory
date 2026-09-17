@@ -144,6 +144,63 @@ class ExperimentTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_dispatch_can_use_a_repository_scoped_github_app_identity(): void
+    {
+        $privateKey = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+
+        if ($privateKey === false) {
+            $this->markTestSkipped('OpenSSL key generation is unavailable in this PHP runtime.');
+        }
+
+        openssl_pkey_export($privateKey, $privateKeyPem);
+
+        config([
+            'observatory.github.token' => null,
+            'observatory.github.app_id' => '123456',
+            'observatory.github.installation_id' => '789012',
+            'observatory.github.private_key_base64' => base64_encode($privateKeyPem),
+            'observatory.github.owner' => 'msaririzki',
+            'observatory.github.repository' => 'sita',
+            'observatory.github.workflow' => 'auth-experiment.yml',
+        ]);
+
+        Http::fake([
+            'api.github.com/app/installations/789012/access_tokens' => Http::response([
+                'token' => 'installation-token',
+            ]),
+            'api.github.com/repos/msaririzki/sita/actions/workflows/auth-experiment.yml/dispatches' => Http::response(status: 204),
+        ]);
+
+        $user = $this->createUser('github-app');
+        $this->actingAs($user)->post(route('experiments.store'), [
+            'name' => 'GitHub App pilot',
+            'profile' => 'wif_basic',
+            'scenario' => 'valid',
+            'target' => 'sita-docker',
+            'git_ref' => 'main',
+            'repetitions' => 1,
+            'cooldown_seconds' => 0,
+        ]);
+
+        $experiment = Experiment::query()->sole();
+
+        $this->actingAs($user)
+            ->post(route('experiments.dispatch', $experiment))
+            ->assertRedirect(route('experiments.show', $experiment));
+
+        Http::assertSent(function (Request $request): bool {
+            return $request->url() === 'https://api.github.com/app/installations/789012/access_tokens'
+                && str_starts_with((string) $request->header('Authorization')[0], 'Bearer ey');
+        });
+        Http::assertSent(function (Request $request): bool {
+            return $request->url() === 'https://api.github.com/repos/msaririzki/sita/actions/workflows/auth-experiment.yml/dispatches'
+                && $request->hasHeader('Authorization', 'Bearer installation-token');
+        });
+    }
+
     public function test_dispatch_failure_is_recorded_without_automatic_retry(): void
     {
         config([

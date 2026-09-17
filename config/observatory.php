@@ -11,6 +11,9 @@ return [
         'repository' => env('GITHUB_REPOSITORY_NAME', 'sita'),
         'workflow' => env('GITHUB_EXPERIMENT_WORKFLOW', 'wif-poc.yml'),
         'token' => env('GITHUB_ACTIONS_TOKEN'),
+        'app_id' => env('GITHUB_APP_ID'),
+        'installation_id' => env('GITHUB_APP_INSTALLATION_ID'),
+        'private_key_base64' => env('GITHUB_APP_PRIVATE_KEY_BASE64'),
     ],
 
     'evidence_oidc' => [
