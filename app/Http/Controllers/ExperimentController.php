@@ -103,9 +103,14 @@ class ExperimentController extends Controller
         Experiment $experiment,
         GitHubWorkflowDispatcher $dispatcher,
     ): RedirectResponse {
-        if ($experiment->profile->value !== 'wif_basic' || ! in_array($experiment->scenario->value, ['valid', 'wrong_audience'], true)) {
+        $supported = match ($experiment->profile->value) {
+            'wif_basic' => in_array($experiment->scenario->value, ['valid', 'wrong_audience'], true),
+            'oauth_static' => $experiment->scenario->value === 'valid',
+            default => false,
+        };
+        if (! $supported) {
             throw ValidationException::withMessages([
-                'experiment' => 'Pilot WIF dasar mendukung skenario autentikasi valid dan audience tidak sesuai.',
+                'experiment' => 'Pilot mendukung WIF dasar untuk autentikasi valid atau audience tidak sesuai, serta OAuth statis untuk autentikasi valid.',
             ]);
         }
         if (! $dispatcher->isConfigured()) {

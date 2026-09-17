@@ -145,6 +145,40 @@ class ExperimentTest extends TestCase
         Queue::assertPushed(DispatchExperimentTrial::class, 1);
     }
 
+    public function test_dispatch_accepts_the_valid_static_oauth_baseline(): void
+    {
+        config([
+            'observatory.github.token' => 'test-token',
+            'observatory.github.owner' => 'msaririzki',
+            'observatory.github.repository' => 'sita',
+            'observatory.github.workflow' => 'wif-poc.yml',
+        ]);
+        Queue::fake();
+
+        $user = $this->createUser('oauth-static');
+        $this->actingAs($user)->post(route('experiments.store'), [
+            'name' => 'Baseline OAuth statis',
+            'profile' => 'oauth_static',
+            'scenario' => 'valid',
+            'target' => 'sita-docker',
+            'git_ref' => 'codex/wif-deploy-basic',
+            'repetitions' => 1,
+            'cooldown_seconds' => 0,
+        ]);
+
+        $experiment = Experiment::query()->sole();
+
+        $this->actingAs($user)
+            ->post(route('experiments.dispatch', $experiment))
+            ->assertRedirect(route('experiments.show', $experiment));
+
+        $this->assertSame(ExperimentStatus::Queued, $experiment->fresh()->status);
+        Queue::assertPushed(
+            DispatchExperimentTrial::class,
+            fn (DispatchExperimentTrial $job): bool => $job->experimentId === $experiment->id,
+        );
+    }
+
     public function test_dispatch_can_use_a_repository_scoped_github_app_identity(): void
     {
         $privateKey = openssl_pkey_new([

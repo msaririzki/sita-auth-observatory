@@ -66,9 +66,11 @@ class TrialEvidenceImporter
             if (count($stages) !== count($requiredStages) || array_diff($requiredStages, array_keys($stages)) !== []) {
                 throw ValidationException::withMessages(['evidence' => 'Tahap bukti wajib unik dan lengkap.']);
             }
+            $requiresOidcClaims = $experiment->profile->value !== 'oauth_static';
             $valid = $stages['preflight']['status'] === 'pass'
-                && $stages['oidc_claim_capture']['status'] === 'pass'
-                && ! empty($data['oidc_claims'])
+                && ($requiresOidcClaims
+                    ? $stages['oidc_claim_capture']['status'] === 'pass' && ! empty($data['oidc_claims'])
+                    : $stages['oidc_claim_capture']['status'] === 'skipped' && $data['oidc_claims'] === null)
                 && $stages['wif_exchange_and_join']['status'] !== 'skipped';
             if ($hasDeploymentEvidence && $data['scenario'] === 'valid') {
                 $valid = $valid
@@ -168,7 +170,7 @@ class TrialEvidenceImporter
             'evidence.experiment_id' => ['required', 'ulid'],
             'evidence.trial_id' => ['required', 'ulid'],
             'evidence.correlation_id' => ['required', 'uuid'],
-            'evidence.profile' => ['required', Rule::in(['wif_basic'])],
+            'evidence.profile' => ['required', Rule::in(['oauth_static', 'wif_basic'])],
             'evidence.scenario' => ['required', Rule::in(['valid', 'wrong_audience'])],
             'evidence.repetition' => ['required', 'integer', 'min:1', 'max:30'],
             'evidence.expected_decision' => ['required', Rule::in(['allow', 'deny'])],

@@ -24,7 +24,8 @@ arsitektur baru dan kenaikan versi skema.
 | Kontrol eksperimen | GitHub App yang dipasang hanya pada repositori SITA memicu `workflow_dispatch` | Izin yang dipakai adalah metadata baca dan Actions baca/tulis; private key hanya ada di environment server |
 | Observability | Tahap workflow, klaim OIDC tersanitasi, durasi, keputusan, dan bukti akhir tampil pada web | Token mentah, credential, dan `.env` tidak disimpan |
 | Batch berurutan | Worker Laravel database queue menunggu bukti satu trial sebelum menjadwalkan trial berikutnya | Pilot dua pengulangan WIF dasar selesai otomatis; data ini hanya bukti fungsi instrumen, bukan data eksperimen akhir |
-| OAuth statis dan WIF multi-klaim | Belum diaktifkan | Tidak boleh dipakai sebagai data pembanding sebelum implementasi dan pilot masing-masing selesai |
+| OAuth statis | Workflow, validasi bukti, dan pemicu Observatory telah disiapkan | Menunggu OAuth Client laboratorium, tag, ACL terbatas, dan pilot satu kali; belum menjadi data pembanding |
+| WIF multi-klaim | Belum diaktifkan | Tidak boleh dipakai sebagai data pembanding sebelum policy klaim dan pilot selesai |
 
 ### Catatan Uji Pilot Batch Otomatis
 

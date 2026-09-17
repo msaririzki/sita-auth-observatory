@@ -76,6 +76,23 @@ class EvidenceImportTest extends TestCase
         $this->assertNull($trial->classification);
     }
 
+    public function test_static_oauth_evidence_records_oidc_as_not_used_for_tailscale_authentication(): void
+    {
+        $data = $this->evidence();
+        Experiment::query()->findOrFail($data['experiment_id'])->update([
+            'profile' => 'oauth_static',
+        ]);
+        $data['profile'] = 'oauth_static';
+        $data['oidc_claims'] = null;
+        $data['stages'][1]['status'] = 'skipped';
+
+        $trial = app(TrialEvidenceImporter::class)->import($data);
+
+        $this->assertSame(TrialStatus::Completed, $trial->status);
+        $this->assertSame('TP', $trial->classification->value);
+        $this->assertSame('skipped', $trial->stageEvents()->where('stage', 'oidc_claim_capture')->sole()->status);
+    }
+
     public function test_expected_audience_rejection_is_recorded_as_a_true_negative(): void
     {
         $data = $this->evidence();
