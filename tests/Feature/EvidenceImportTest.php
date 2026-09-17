@@ -74,6 +74,30 @@ class EvidenceImportTest extends TestCase
         $this->assertNull($trial->classification);
     }
 
+    public function test_expected_audience_rejection_is_recorded_as_a_true_negative(): void
+    {
+        $data = $this->evidence();
+        Experiment::query()->findOrFail($data['experiment_id'])->update([
+            'scenario' => 'wrong_audience',
+            'expected_decision' => 'deny',
+        ]);
+        $data['scenario'] = 'wrong_audience';
+        $data['expected_decision'] = 'deny';
+        $data['actual_decision'] = 'deny';
+        $data['classification'] = 'TN';
+        $data['reason_code'] = 'AUTHENTICATION_OR_ACCESS_DENIED';
+        $data['stages'][2]['status'] = 'fail';
+        $data['stages'][3]['status'] = 'skipped';
+        $data['stages'][4]['status'] = 'skipped';
+
+        $trial = app(TrialEvidenceImporter::class)->import($data);
+
+        $this->assertSame(TrialStatus::Completed, $trial->status);
+        $this->assertSame('TN', $trial->classification->value);
+        $this->assertSame('wif_exchange_and_join', $trial->failure_stage);
+        $this->assertSame('AUTHENTICATION_OR_ACCESS_DENIED', $trial->failure_reason);
+    }
+
     public function test_upload_requires_login_and_accepts_a_bound_json_file(): void
     {
         $data = $this->evidence();
