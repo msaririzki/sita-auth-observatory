@@ -4,9 +4,9 @@
 
 | Atribut                         | Nilai                                      |
 | ------------------------------- | ------------------------------------------ |
-| Status                          | Disetujui untuk menjadi dasar implementasi |
-| Versi                           | 1.0.0                                      |
-| Tanggal                         | 16 September 2026                          |
+| Status                          | Implementasi fase 1 sedang berjalan        |
+| Versi                           | 1.1.0                                      |
+| Tanggal                         | 18 September 2026                          |
 | Pemilik                         | Muhamad Sari Rizki                         |
 | Repositori objek penelitian     | `msaririzki/sita`                          |
 | Repositori instrumen penelitian | `msaririzki/sita-auth-observatory`         |
@@ -15,6 +15,16 @@ Dokumen ini adalah sumber kebenaran awal untuk ruang lingkup, arsitektur,
 teknologi, data, metrik, keamanan, dan urutan implementasi. Perubahan yang
 mengubah variabel penelitian atau format bukti harus disertai keputusan
 arsitektur baru dan kenaikan versi skema.
+
+### Catatan Implementasi per 18 September 2026
+
+| Area | Kondisi yang telah dibuktikan | Bukti atau batas saat ini |
+| --- | --- | --- |
+| WIF dasar | GitHub Actions memperoleh token OIDC, bergabung ke tailnet melalui Tailscale WIF, lalu mengakses Docker SITA privat | Bukti akhir ditandatangani token OIDC kedua dan tersimpan di Observatory |
+| Kontrol eksperimen | GitHub App yang dipasang hanya pada repositori SITA memicu `workflow_dispatch` | Izin yang dipakai adalah metadata baca dan Actions baca/tulis; private key hanya ada di environment server |
+| Observability | Tahap workflow, klaim OIDC tersanitasi, durasi, keputusan, dan bukti akhir tampil pada web | Token mentah, credential, dan `.env` tidak disimpan |
+| Batch berurutan | Worker Laravel database queue menunggu bukti satu trial sebelum menjadwalkan trial berikutnya | Implementasi dan pengujian otomatis selesai; uji laboratorium batch lebih dari satu trial menjadi checkpoint berikutnya |
+| OAuth statis dan WIF multi-klaim | Belum diaktifkan | Tidak boleh dipakai sebagai data pembanding sebelum implementasi dan pilot masing-masing selesai |
 
 ## 2. Tujuan
 
@@ -94,9 +104,9 @@ flowchart LR
         G[SITA]
     end
 
-    subgraph Observer[VM sita-observer]
+    subgraph Observer[CT Docker privat]
         H[Artifact Importer]
-        I[PostgreSQL]
+        I[Database Observatory]
         J[Observatory Web]
     end
 
@@ -118,9 +128,9 @@ flowchart LR
 | Collector       | GitHub-hosted runner              | Mengamati konteks asli workflow                           |
 | Bukti primer    | GitHub Actions Artifact           | Tetap tersedia walaupun autentikasi atau deployment gagal |
 | Target SITA     | VM Docker privat Proxmox          | Objek pembuktian akses dan deployment                     |
-| Observatory     | VM `sita-observer` terpisah       | Instrumen tidak ikut gagal bersama target                 |
-| Database        | PostgreSQL pada stack Observatory | Mendukung relasi, JSONB, dan agregasi data                |
-| Akses dashboard | Tailscale/LAN                     | Membatasi paparan data penelitian                         |
+| Observatory     | CT Docker privat terpisah          | Instrumen tidak ikut gagal bersama target                 |
+| Database        | SQLite pada volume Docker          | Cukup untuk fase penelitian awal, mudah dicadangkan       |
+| Akses dashboard | Cloudflare Tunnel dan autentikasi aplikasi | Dashboard dapat ditinjau tanpa membuka port container |
 
 ## 6. Keputusan Teknologi
 
@@ -128,14 +138,14 @@ flowchart LR
 
 | Lapisan    | Teknologi                            | Keputusan                                                          |
 | ---------- | ------------------------------------ | ------------------------------------------------------------------ |
-| Backend    | Laravel 13, PHP 8.5                  | Modular monolith; validasi, queue, scheduler, dan pengujian matang |
+| Backend    | Laravel 13, PHP 8.4                  | Modular monolith; validasi, queue, dan pengujian matang   |
 | Frontend   | Inertia 3, React 19, TypeScript      | UI interaktif tanpa API terpisah yang tidak diperlukan             |
 | Styling    | Tailwind CSS 4                       | Design token, responsive layout, dan konsistensi visual            |
 | Komponen   | Radix UI primitives + komponen lokal | Aksesibilitas dan kontrol penuh atas tampilan                      |
 | Ikon       | Lucide                               | Ikon konsisten dan ringan                                          |
-| Grafik     | Recharts                             | Grafik React yang cukup untuk analisis eksperimen                  |
-| Tabel      | TanStack Table                       | Sort, filter, pagination, dan kolom data penelitian                |
-| Database   | PostgreSQL 18                        | Relasional, JSONB, constraint, dan agregasi                        |
+| Grafik     | Komponen React lokal                 | Grafik ditambahkan setelah data final tersedia                     |
+| Tabel      | Komponen React lokal                 | Tabel bukti dan tahapan sudah tersedia                             |
+| Database   | SQLite                               | Volume terpisah dan skema relasional untuk fase penelitian         |
 | Queue      | Laravel database queue               | Cukup untuk skala penelitian tanpa Redis wajib                     |
 | Deployment | Docker Compose                       | Reproduksibel pada VM Proxmox                                      |
 
@@ -163,8 +173,8 @@ memori selama pemeriksaan dan tidak ditulis ke log, file, output, atau database.
 Importer mendukung dua jalur:
 
 1. unggah artefak secara manual untuk proses yang sepenuhnya dapat diaudit; dan
-2. sinkronisasi otomatis menggunakan GitHub App dengan izin read-only terhadap
-   Actions dan metadata repositori.
+2. pemicu `workflow_dispatch` menggunakan GitHub App dengan izin minimum
+   metadata baca dan Actions baca/tulis.
 
 Credential GitHub App berada pada VM Observer, bukan pada workflow deployment,
 dan tidak dihitung sebagai credential pada perlakuan eksperimen. Jalur manual
@@ -183,10 +193,9 @@ dijalankan berurutan dengan jeda yang tercatat untuk mengurangi pengaruh beban
 runner, jalur DERP, dan VM target. Perbandingan antarkonfigurasi dilakukan
 setelah batch OAuth statis, WIF dasar, dan WIF multi-klaim selesai.
 
-Status tingkat tinggi diperbarui dari GitHub webhook. Event tahap yang lebih
-rinci dikirim oleh workflow setelah batas pengukuran berakhir menggunakan token
-OIDC dengan audience khusus Observatory. Browser menerima pembaruan melalui
-Server-Sent Events; token OIDC mentah tidak disimpan.
+Event tahap dikirim oleh workflow menggunakan token OIDC dengan audience khusus
+Observatory. Browser menerima pembaruan melalui Server-Sent Events; token OIDC
+mentah tidak disimpan. GitHub webhook tidak digunakan pada fase ini.
 
 ## 7. Konfigurasi Eksperimen
 
@@ -455,10 +464,13 @@ kali; sepuluh pengulangan direkomendasikan bila waktu dan kuota memungkinkan.
 
 ## 15. Keamanan Observatory
 
-- Dashboard hanya dapat diakses melalui Tailscale atau jaringan laboratorium.
-- Autentikasi pengguna menerapkan peran `administrator`, `researcher`, dan
-  `viewer`.
-- GitHub App hanya memiliki izin read-only terhadap Actions dan metadata.
+- Dashboard produksi diakses melalui Cloudflare Tunnel dan dilindungi
+  autentikasi aplikasi. Port container tidak dibuka langsung ke internet.
+- Akses ke data eksperimen dibatasi pada pengguna aplikasi yang berwenang.
+  Peran terpisah dapat ditambahkan bila kebutuhan eksperimen membutuhkannya.
+- GitHub App dipasang hanya pada repositori SITA dan memakai izin metadata baca
+  serta Actions baca/tulis, karena `workflow_dispatch` memang memerlukan izin
+  tulis pada Actions.
 - Import tidak pernah mengeksekusi isi artefak.
 - JSON memiliki batas ukuran, nesting, dan tipe data.
 - Output teks ditampilkan sebagai teks, bukan HTML mentah.
@@ -484,19 +496,20 @@ yang stabil.
 
 ## 17. Deployment Observatory
 
-VM `sita-observer` menjalankan Docker Compose:
+Saat ini Observatory berjalan pada CT Docker privat terpisah. Docker Compose
+menjalankan:
 
 ```text
-reverse-proxy
-observatory-web
-observatory-worker
-observatory-scheduler
-postgres
+app
+web (Nginx)
+worker (Laravel database queue)
+SQLite pada volume Docker
 ```
 
-Redis tidak menjadi kebutuhan awal. Queue database cukup untuk sinkronisasi
-artefak penelitian. Redis hanya ditambahkan jika pengukuran menunjukkan
-kebutuhan nyata, bukan untuk memperbanyak teknologi.
+Cloudflare Tunnel meneruskan permintaan publik ke web container tanpa membuka
+port layanan aplikasi pada host. Queue database cukup untuk batch eksperimen
+berurutan. Redis hanya ditambahkan jika pengukuran menunjukkan kebutuhan nyata,
+bukan untuk memperbanyak teknologi.
 
 ## 18. Tahapan Implementasi
 
@@ -522,11 +535,11 @@ kebutuhan nyata, bukan untuk memperbanyak teknologi.
 
 ### Fase 3 — Backend dan Importer
 
-- Scaffold Laravel dan PostgreSQL.
+- Scaffold Laravel dan database SQLite pada volume Docker untuk fase awal.
 - Implementasi model dan migration.
 - Implementasi unggah manual.
 - Implementasi verifikasi digest, schema, sanitasi, dan deduplikasi.
-- Tambahkan GitHub App pull setelah jalur manual stabil.
+- Tambahkan pemicu GitHub App setelah jalur manual stabil.
 
 ### Fase 4 — Dashboard
 

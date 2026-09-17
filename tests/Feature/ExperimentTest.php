@@ -286,6 +286,54 @@ class ExperimentTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_worker_waits_when_another_experiment_has_an_active_trial(): void
+    {
+        config([
+            'observatory.github.token' => 'test-token',
+            'observatory.github.owner' => 'msaririzki',
+            'observatory.github.repository' => 'sita',
+            'observatory.github.workflow' => 'auth-experiment.yml',
+        ]);
+        Http::fake(['api.github.com/*' => Http::response(status: 204)]);
+
+        $activeExperiment = Experiment::query()->create([
+            'name' => 'Active experiment',
+            'profile' => 'wif_basic',
+            'scenario' => 'valid',
+            'expected_decision' => 'allow',
+            'target' => 'sita-docker',
+            'git_ref' => 'main',
+            'repetitions' => 1,
+            'cooldown_seconds' => 0,
+            'status' => ExperimentStatus::Running,
+        ]);
+        $activeExperiment->trials()->create([
+            'sequence_number' => 1,
+            'status' => TrialStatus::Authenticating,
+        ]);
+
+        $waitingExperiment = Experiment::query()->create([
+            'name' => 'Waiting experiment',
+            'profile' => 'wif_basic',
+            'scenario' => 'valid',
+            'expected_decision' => 'allow',
+            'target' => 'sita-docker',
+            'git_ref' => 'main',
+            'repetitions' => 1,
+            'cooldown_seconds' => 0,
+            'status' => ExperimentStatus::Queued,
+        ]);
+        $waitingTrial = $waitingExperiment->trials()->create([
+            'sequence_number' => 1,
+        ]);
+
+        (new DispatchExperimentTrial($waitingExperiment->id))
+            ->handle(app(GitHubWorkflowDispatcher::class));
+
+        $this->assertSame(TrialStatus::Pending, $waitingTrial->fresh()->status);
+        Http::assertNothingSent();
+    }
+
     private function createUser(string $suffix): User
     {
         return User::query()->create([

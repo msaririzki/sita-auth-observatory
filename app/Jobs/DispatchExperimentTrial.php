@@ -16,7 +16,7 @@ class DispatchExperimentTrial implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    public int $tries = 240;
 
     public int $timeout = 60;
 
@@ -27,6 +27,12 @@ class DispatchExperimentTrial implements ShouldQueue
 
     public function handle(GitHubWorkflowDispatcher $dispatcher): void
     {
+        if ($this->hasOtherActiveTrial()) {
+            $this->release(15);
+
+            return;
+        }
+
         $selection = $this->reserveNextTrial();
 
         if ($selection === null) {
@@ -40,6 +46,19 @@ class DispatchExperimentTrial implements ShouldQueue
         } catch (Throwable $exception) {
             $this->recordDispatchFailure($trial, $exception);
         }
+    }
+
+    private function hasOtherActiveTrial(): bool
+    {
+        return ExperimentTrial::query()
+            ->where('experiment_id', '!=', $this->experimentId)
+            ->whereNotIn('status', [
+                TrialStatus::Pending,
+                TrialStatus::Completed,
+                TrialStatus::Failed,
+                TrialStatus::Cancelled,
+            ])
+            ->exists();
     }
 
     /** @return array{0: Experiment, 1: ExperimentTrial}|null */

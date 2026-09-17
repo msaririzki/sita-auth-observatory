@@ -18,22 +18,23 @@ bukti penelitian.
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
 - [UI/UX Blueprint](docs/UI_UX_BLUEPRINT.md)
 
-Implementasi dimulai pada branch `codex/observatory-foundation`. Fondasi awal
-mencakup Laravel 13, Inertia 3, React 19, model eksperimen berurutan, dan halaman
-untuk merancang batch OAuth statis, WIF dasar, atau WIF multi-klaim.
+Implementasi berada pada branch `codex/observatory-foundation`. Fondasi memakai
+Laravel 13, PHP 8.4, Inertia 3, React 19, dan database SQLite pada volume
+Docker. Aplikasi SITA tetap berjalan pada repositori terpisah.
 
 ## Status Implementasi
 
 - Dashboard dan rancangan eksperimen berurutan tersedia.
-- Backend dapat mengirim satu trial pertama melalui `workflow_dispatch` tanpa
-  menaruh credential GitHub di browser.
-- Klik ganda ditahan dengan penguncian status database dan permintaan dispatch
-  tidak diulang otomatis.
+- GitHub App memicu `workflow_dispatch` tanpa menaruh credential GitHub di
+  browser.
+- Batch menjalankan satu trial pada satu waktu. Setelah bukti trial tervalidasi,
+  worker database queue menjadwalkan trial berikutnya setelah jeda eksperimen.
+- Jalur deployment hanya dipakai satu eksperimen aktif pada satu waktu.
 - JSON Schema bukti v1 dan fixture TP/TN tersedia pada `schemas/` dan
   `fixtures/`.
 - Algoritma klasifikasi TP, TN, FP, dan FN telah memiliki unit test.
-- Workflow pilot WIF dasar disiapkan pada branch `codex/wif-poc` repositori
-  SITA. OAuth statis dan WIF multi-klaim belum dinyatakan siap.
+- Workflow pilot WIF dasar berjalan pada branch `codex/wif-deploy-basic`
+  repositori SITA. OAuth statis dan WIF multi-klaim belum dinyatakan siap.
 
 Validasi kontrak bukti dijalankan dengan:
 
@@ -43,8 +44,8 @@ npm run evidence:validate
 
 ## Production Docker deployment
 
-The production stack runs Laravel behind an Nginx container and binds the web
-service only to the host loopback interface. Copy `.env.example` to
+The production stack runs Laravel behind an Nginx container, an isolated queue
+worker, and binds the web service only to the host loopback interface. Copy `.env.example` to
 `.env.production`, set production values, and run:
 
 ```bash
