@@ -23,8 +23,22 @@ arsitektur baru dan kenaikan versi skema.
 | WIF dasar | GitHub Actions memperoleh token OIDC, bergabung ke tailnet melalui Tailscale WIF, lalu mengakses Docker SITA privat | Bukti akhir ditandatangani token OIDC kedua dan tersimpan di Observatory |
 | Kontrol eksperimen | GitHub App yang dipasang hanya pada repositori SITA memicu `workflow_dispatch` | Izin yang dipakai adalah metadata baca dan Actions baca/tulis; private key hanya ada di environment server |
 | Observability | Tahap workflow, klaim OIDC tersanitasi, durasi, keputusan, dan bukti akhir tampil pada web | Token mentah, credential, dan `.env` tidak disimpan |
-| Batch berurutan | Worker Laravel database queue menunggu bukti satu trial sebelum menjadwalkan trial berikutnya | Implementasi dan pengujian otomatis selesai; uji laboratorium batch lebih dari satu trial menjadi checkpoint berikutnya |
+| Batch berurutan | Worker Laravel database queue menunggu bukti satu trial sebelum menjadwalkan trial berikutnya | Pilot dua pengulangan WIF dasar selesai otomatis; data ini hanya bukti fungsi instrumen, bukan data eksperimen akhir |
 | OAuth statis dan WIF multi-klaim | Belum diaktifkan | Tidak boleh dipakai sebagai data pembanding sebelum implementasi dan pilot masing-masing selesai |
+
+### Catatan Uji Pilot Batch Otomatis
+
+Pada 18 September 2026 WITA, pilot `WIF dasar` dengan skenario autentikasi
+valid dijalankan dua kali terhadap commit dan target SITA yang sama. Trial
+pertama selesai pada pukul 01.20.49 WITA. Setelah jeda tercatat 15 detik,
+worker mengirim trial kedua otomatis pada pukul 01.21.04 WITA. Trial kedua
+selesai pada pukul 01.22.00 WITA. Kedua trial berstatus selesai, memiliki
+workflow GitHub yang berbeda, dan tidak memiliki tahap gagal.
+
+Pilot ini membuktikan alur antrean: bukti akhir trial pertama memicu penjadwalan
+trial kedua, bukan pengiriman paralel. Data pilot dipisahkan dari eksperimen
+akhir karena konfigurasi, jumlah pengulangan, dan tiga profil pembanding belum
+dibekukan.
 
 ## 2. Tujuan
 
