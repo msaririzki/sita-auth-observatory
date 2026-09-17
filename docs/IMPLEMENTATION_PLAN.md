@@ -65,6 +65,13 @@ berstatus lulus. Nilai ini hanya validasi jalur dan instrumen; belum boleh
 dipakai menyimpulkan perbandingan OAuth dan WIF sebelum protokol akhir dibekukan
 dan seluruh pengulangan selesai.
 
+Kebijakan tailnet lama masih memuat *grant* umum `*` menuju `*`. Aturan OAuth
+yang baru tetap dicatat dan diuji untuk TCP/22 serta Tailscale SSH, tetapi
+*grant* umum tersebut berarti pilot ini belum membuktikan segmentasi jaringan
+paling ketat. Sebelum eksperimen final yang mengukur penolakan target atau
+port, kebijakan umum harus direstrukturisasi dalam *maintenance window* dan
+skenario *deny* harus diuji kembali.
+
 ## 2. Tujuan
 
 Membangun instrumen penelitian independen yang dapat:
