@@ -488,14 +488,18 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                         <div>
                             <p className="font-medium">
                                 {liveExperimentStatus === 'draft'
-                                    ? 'Menunggu workflow GitHub dimulai'
-                                    : monitoringActive
+                                    ? 'Eksperimen belum dikirim'
+                                    : liveExperimentStatus === 'queued'
+                                      ? 'Permintaan sudah diterima GitHub Actions'
+                                      : monitoringActive
                                     ? 'Pemantauan proses aktif'
                                     : 'Pemantauan proses selesai'}
                             </p>
                             <p className="text-muted-foreground text-xs">
                                 {liveExperimentStatus === 'draft'
-                                    ? 'Halaman siap menerima status otomatis begitu workflow dimulai.'
+                                    ? 'Kembali ke riwayat eksperimen, lalu tekan Jalankan untuk mengirimnya ke GitHub Actions.'
+                                    : liveExperimentStatus === 'queued'
+                                      ? 'GitHub sedang memulai workflow. Tahap pemeriksaan akan muncul otomatis di halaman ini tanpa membuka GitHub.'
                                     : monitoringActive
                                     ? connectionStatus === 'connected'
                                         ? 'Status dikirim langsung dari workflow melalui sambungan aktif.'

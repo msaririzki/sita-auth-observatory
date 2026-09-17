@@ -94,8 +94,12 @@ class ExperimentController extends Controller
             return $experiment;
         });
 
-        return to_route('experiments.index')
-            ->with('success', "Rencana {$experiment->name} tersimpan dan sudah muncul di riwayat. Buka bukti untuk memantau workflow saat dijalankan.");
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => "Rencana {$experiment->name} tersimpan dan sudah muncul di riwayat.",
+        ]);
+
+        return to_route('experiments.index');
     }
 
     public function dispatch(
@@ -153,8 +157,12 @@ class ExperimentController extends Controller
             ]);
         }
 
-        return to_route('experiments.show', $experiment)
-            ->with('success', "Eksperimen {$experiment->name} dikirim ke GitHub Actions.");
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => "Permintaan {$experiment->name} sudah diterima GitHub Actions. Pemantauan proses dibuka.",
+        ]);
+
+        return to_route('experiments.show', $experiment);
     }
 
     private function recordDispatchFailure(

@@ -1,9 +1,10 @@
-import { type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import {
     Clock3,
     FlaskConical,
     GitBranch,
+    LoaderCircle,
     Play,
     Server,
     ShieldAlert,
@@ -63,7 +64,7 @@ type ExperimentsProps = {
 
 const statusLabels: Record<string, string> = {
     draft: "Draft",
-    queued: "Antrean",
+    queued: "Menunggu GitHub Actions",
     running: "Berjalan",
     completed: "Selesai",
     failed: "Gagal",
@@ -75,6 +76,9 @@ export default function ExperimentsIndex({
     options,
     dispatchReady,
 }: ExperimentsProps) {
+    const [dispatchingExperimentId, setDispatchingExperimentId] = useState<
+        string | null
+    >(null);
     const form = useForm({
         name: "",
         profile: "wif_basic",
@@ -101,6 +105,22 @@ export default function ExperimentsIndex({
                 });
             },
         });
+    }
+
+    function dispatchExperiment(experimentId: string): void {
+        if (dispatchingExperimentId !== null) {
+            return;
+        }
+
+        router.post(
+            `/experiments/${experimentId}/dispatch`,
+            {},
+            {
+                preserveScroll: true,
+                onStart: () => setDispatchingExperimentId(experimentId),
+                onFinish: () => setDispatchingExperimentId(null),
+            },
+        );
     }
 
     return (
@@ -244,18 +264,33 @@ export default function ExperimentsIndex({
                                                                 <Button
                                                                     type="button"
                                                                     size="sm"
+                                                                    disabled={
+                                                                        dispatchingExperimentId ===
+                                                                        experiment.id
+                                                                    }
+                                                                    aria-busy={
+                                                                        dispatchingExperimentId ===
+                                                                        experiment.id
+                                                                    }
                                                                     onClick={() =>
-                                                                        router.post(
-                                                                            `/experiments/${experiment.id}/dispatch`,
-                                                                            {},
-                                                                            {
-                                                                                preserveScroll: true,
-                                                                            },
+                                                                        dispatchExperiment(
+                                                                            experiment.id,
                                                                         )
                                                                     }
                                                                 >
-                                                                    <Play aria-hidden="true" />
-                                                                    Jalankan
+                                                                    {dispatchingExperimentId ===
+                                                                    experiment.id ? (
+                                                                        <LoaderCircle
+                                                                            className="animate-spin"
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                    ) : (
+                                                                        <Play aria-hidden="true" />
+                                                                    )}
+                                                                    {dispatchingExperimentId ===
+                                                                    experiment.id
+                                                                        ? "Mengirim ke GitHub..."
+                                                                        : "Jalankan"}
                                                                 </Button>
                                                             )}
                                                     </div>
