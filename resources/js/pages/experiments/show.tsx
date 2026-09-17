@@ -2,7 +2,6 @@ import { type FormEvent, useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    ChevronDown,
     CircleHelp,
     FileJson,
     ShieldCheck,
@@ -359,9 +358,6 @@ function classificationLabel(value: string | null): string | null {
 }
 
 export default function ExperimentEvidence({ experiment, trials }: Props) {
-    const [claimView, setClaimView] = useState<'technical' | 'guided'>(
-        'technical',
-    );
     const [explainedClaim, setExplainedClaim] = useState<string | null>(null);
     const form = useForm<{ evidence_file: File | null }>({
         evidence_file: null,
@@ -574,55 +570,17 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                         </table>
                                     </div>
                                     <section className="space-y-3">
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <header className="space-y-1">
                                             <h2 className="flex items-center gap-2 font-medium">
                                                 <ShieldCheck className="size-4" />{' '}
                                                 Data identitas dari GitHub
                                             </h2>
-                                            <div
-                                                className="bg-muted inline-flex w-fit rounded-lg border p-1"
-                                                role="group"
-                                                aria-label="Pilih cara membaca data identitas GitHub"
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
-                                                        claimView ===
-                                                        'technical'
-                                                            ? 'bg-background text-foreground shadow-sm'
-                                                            : 'text-muted-foreground hover:text-foreground'
-                                                    }`}
-                                                    aria-pressed={
-                                                        claimView ===
-                                                        'technical'
-                                                    }
-                                                    onClick={() =>
-                                                        setClaimView(
-                                                            'technical',
-                                                        )
-                                                    }
-                                                >
-                                                    Data asli
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
-                                                        claimView === 'guided'
-                                                            ? 'bg-background text-foreground shadow-sm'
-                                                            : 'text-muted-foreground hover:text-foreground'
-                                                    }`}
-                                                    aria-pressed={
-                                                        claimView === 'guided'
-                                                    }
-                                                    onClick={() =>
-                                                        setClaimView('guided')
-                                                    }
-                                                >
-                                                    Panduan baca
-                                                </button>
-                                            </div>
-                                        </div>
-                                        {claimView === 'technical' ? (
+                                            <p className="text-muted-foreground text-sm leading-6">
+                                                Nilai asli dipertahankan sebagai bukti. Tekan
+                                                tombol tanda tanya pada setiap baris untuk melihat
+                                                arti dan cara membacanya.
+                                            </p>
+                                        </header>
                                             <div className="space-y-4">
                                                 {groupClaims(
                                                     trial.metadata.evidence
@@ -763,145 +721,6 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                     </section>
                                                 ))}
                                             </div>
-                                        ) : (
-                                            <div className="space-y-5">
-                                                <p className="text-muted-foreground text-sm leading-6">
-                                                    Buka salah satu baris untuk
-                                                    melihat arti dan cara
-                                                    membacanya. Nilai asli tetap
-                                                    ditampilkan sebagai bukti
-                                                    penelitian.
-                                                </p>
-                                                {groupClaims(
-                                                    trial.metadata.evidence
-                                                        .oidc_claims ?? {},
-                                                ).map((section) => (
-                                                    <section
-                                                        key={section.id}
-                                                        className="space-y-2"
-                                                    >
-                                                        <header>
-                                                            <h3 className="text-sm font-medium">
-                                                                {section.label}
-                                                            </h3>
-                                                            <p className="text-muted-foreground mt-1 text-xs leading-5">
-                                                                {
-                                                                    section.description
-                                                                }
-                                                            </p>
-                                                        </header>
-                                                        <div className="grid gap-3">
-                                                            {section.entries.map(
-                                                                ([
-                                                                    key,
-                                                                    value,
-                                                                ]) => {
-                                                                    const guide =
-                                                                        claimGuide(
-                                                                            key,
-                                                                        );
-                                                                    const readableTime =
-                                                                        guide.kind ===
-                                                                        'time'
-                                                                            ? formatUnixTime(
-                                                                                  value,
-                                                                              )
-                                                                            : null;
-
-                                                                    return (
-                                                                        <details
-                                                                            key={
-                                                                                key
-                                                                            }
-                                                                            className="group overflow-hidden rounded-xl border"
-                                                                        >
-                                                                            <summary className="hover:bg-muted/40 flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
-                                                                                <div className="min-w-0 flex-1">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <code
-                                                                                            className="text-sm font-semibold"
-                                                                                            translate="no"
-                                                                                        >
-                                                                                            {
-                                                                                                key
-                                                                                            }
-                                                                                        </code>
-                                                                                        <span
-                                                                                            className="inline-flex size-6 items-center justify-center rounded-full text-indigo-600"
-                                                                                            title={`Jelaskan klaim ${key}`}
-                                                                                            aria-label={`Jelaskan klaim ${key}`}
-                                                                                        >
-                                                                                            <CircleHelp
-                                                                                                className="size-4"
-                                                                                                aria-hidden="true"
-                                                                                            />
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <code
-                                                                                        className="text-muted-foreground mt-1 block overflow-x-auto text-sm break-all whitespace-pre-wrap"
-                                                                                        translate="no"
-                                                                                    >
-                                                                                        {String(
-                                                                                            value ??
-                                                                                                'Tidak tersedia',
-                                                                                        )}
-                                                                                    </code>
-                                                                                </div>
-                                                                                <ChevronDown
-                                                                                    className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
-                                                                                    aria-hidden="true"
-                                                                                />
-                                                                            </summary>
-                                                                            <div className="bg-muted/30 space-y-3 border-t px-4 py-4">
-                                                                                <div>
-                                                                                    <p className="font-medium">
-                                                                                        {
-                                                                                            guide.label
-                                                                                        }
-                                                                                    </p>
-                                                                                    <p className="text-muted-foreground mt-1 text-sm leading-6">
-                                                                                        {
-                                                                                            guide.summary
-                                                                                        }
-                                                                                    </p>
-                                                                                </div>
-                                                                                {readableTime && (
-                                                                                    <p className="text-sm">
-                                                                                        <span className="text-muted-foreground">
-                                                                                            Waktu
-                                                                                            yang
-                                                                                            mudah
-                                                                                            dibaca:{' '}
-                                                                                        </span>
-                                                                                        <strong>
-                                                                                            {
-                                                                                                readableTime
-                                                                                            }
-                                                                                        </strong>{' '}
-                                                                                        <span className="text-muted-foreground">
-                                                                                            (WITA)
-                                                                                        </span>
-                                                                                    </p>
-                                                                                )}
-                                                                                <div className="bg-background rounded-lg border p-3 text-sm leading-6">
-                                                                                    <span className="font-medium">
-                                                                                        Cara
-                                                                                        membaca:{' '}
-                                                                                    </span>
-                                                                                    {
-                                                                                        guide.reading
-                                                                                    }
-                                                                                </div>
-                                                                            </div>
-                                                                        </details>
-                                                                    );
-                                                                },
-                                                            )}
-                                                        </div>
-                                                    </section>
-                                                ))}
-                                            </div>
-                                        )}
                                     </section>
                                     <div className="space-y-2 rounded-xl border p-4 text-xs">
                                         <p className="break-all">
