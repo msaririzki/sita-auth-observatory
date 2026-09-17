@@ -4,8 +4,8 @@
 
 | Atribut                         | Nilai                                      |
 | ------------------------------- | ------------------------------------------ |
-| Status                          | Implementasi fase 1 sedang berjalan        |
-| Versi                           | 1.1.0                                      |
+| Status                          | Pilot OAuth statis dan WIF dasar terbukti  |
+| Versi                           | 1.2.0                                      |
 | Tanggal                         | 18 September 2026                          |
 | Pemilik                         | Muhamad Sari Rizki                         |
 | Repositori objek penelitian     | `msaririzki/sita`                          |
@@ -24,7 +24,7 @@ arsitektur baru dan kenaikan versi skema.
 | Kontrol eksperimen | GitHub App yang dipasang hanya pada repositori SITA memicu `workflow_dispatch` | Izin yang dipakai adalah metadata baca dan Actions baca/tulis; private key hanya ada di environment server |
 | Observability | Tahap workflow, klaim OIDC tersanitasi, durasi, keputusan, dan bukti akhir tampil pada web | Token mentah, credential, dan `.env` tidak disimpan |
 | Batch berurutan | Worker Laravel database queue menunggu bukti satu trial sebelum menjadwalkan trial berikutnya | Pilot dua pengulangan WIF dasar selesai otomatis; data ini hanya bukti fungsi instrumen, bukan data eksperimen akhir |
-| OAuth statis | Workflow, validasi bukti, dan pemicu Observatory telah disiapkan | Menunggu OAuth Client laboratorium, tag, ACL terbatas, dan pilot satu kali; belum menjadi data pembanding |
+| OAuth statis | OAuth Client laboratorium terpisah, tag sementara, *secret* terenkripsi GitHub, pemicu Observatory, dan alur SITA privat telah diuji | Pilot sukses satu kali setelah aturan SSH spesifik OAuth disimpan; belum menjadi data pembanding final |
 | WIF multi-klaim | Belum diaktifkan | Tidak boleh dipakai sebagai data pembanding sebelum policy klaim dan pilot selesai |
 
 ### Catatan Uji Pilot Batch Otomatis
@@ -40,6 +40,30 @@ Pilot ini membuktikan alur antrean: bukti akhir trial pertama memicu penjadwalan
 trial kedua, bukan pengiriman paralel. Data pilot dipisahkan dari eksperimen
 akhir karena konfigurasi, jumlah pengulangan, dan tiga profil pembanding belum
 dibekukan.
+
+### Catatan Uji Pilot OAuth Statis
+
+Pada 18 September 2026 WITA, OAuth Client laboratorium yang terpisah dibuat
+dengan hak minimum untuk membuat node sementara bertag `tag:ci-oauth-static`.
+Client ID disimpan sebagai GitHub Actions Variable dan Client Secret hanya
+disimpan sebagai GitHub Actions Secret terenkripsi. Nilai secret tidak pernah
+masuk ke repositori, artifact, Observatory, maupun dokumentasi penelitian.
+
+Pilot pertama (GitHub run `35255962998`) berhasil autentikasi dan menjangkau
+target privat, namun SSH ditolak karena aturan SSH untuk tag OAuth belum benar-
+benar tersimpan dalam kebijakan tailnet. Pilot ini dicatat sebagai temuan
+konfigurasi instrumen, bukan sampel pembanding. Setelah aturan TCP/22, SSH
+`ServerDeploy`, dan `sshTests` untuk `tag:ci-oauth-static` disimpan dan
+diverifikasi, pilot ulang (GitHub run `35256510874`) selesai dengan keputusan
+`allow` dan klasifikasi `TP`.
+
+Durasi pilot ulang yang tercatat adalah autentikasi 2.924,425 ms,
+*reachability* 4.170,985 ms, SSH 2.162,417 ms, dan total 73.509,942 ms.
+Ketujuh tahap—*preflight*, pencatatan konteks OAuth, akses Tailscale,
+*reachability*, SSH, pembaruan kandidat Docker SITA, serta *health check*—
+berstatus lulus. Nilai ini hanya validasi jalur dan instrumen; belum boleh
+dipakai menyimpulkan perbandingan OAuth dan WIF sebelum protokol akhir dibekukan
+dan seluruh pengulangan selesai.
 
 ## 2. Tujuan
 
