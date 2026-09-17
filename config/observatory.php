@@ -12,4 +12,10 @@ return [
         'workflow' => env('GITHUB_EXPERIMENT_WORKFLOW', 'wif-poc.yml'),
         'token' => env('GITHUB_ACTIONS_TOKEN'),
     ],
+
+    'evidence_oidc' => [
+        'issuer' => env('EVIDENCE_OIDC_ISSUER', 'https://token.actions.githubusercontent.com'),
+        'audience' => env('EVIDENCE_OIDC_AUDIENCE', rtrim((string) env('APP_URL'), '/').'/api/v1/evidence'),
+        'discovery_url' => env('EVIDENCE_OIDC_DISCOVERY_URL', 'https://token.actions.githubusercontent.com/.well-known/openid-configuration'),
+    ],
 ];

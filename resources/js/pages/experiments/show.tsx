@@ -57,6 +57,8 @@ type Trial = {
         source: string;
         evidence_sha256: string;
         measurement_valid: boolean;
+        signature_verified_by_observatory: boolean;
+        verified_submission_claims: Record<string, unknown>;
         evidence: Evidence;
     } | null;
     stages: Stage[];
@@ -120,14 +122,12 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                     <Badge variant="outline">{experiment.status}</Badge>
                 </header>
                 <div className="bg-muted/30 rounded-xl border p-4 text-sm leading-6">
-                    Data berasal dari artefak workflow GitHub Actions yang
-                    diimpor operator. Ini uji konektivitas WIF, belum deployment
-                    aplikasi atau perbandingan statistik tiga metode. Waktu WIF
-                    mencakup persiapan action, autentikasi, dan bergabung ke
-                    tailnet. Jumlah waktu hanya menjumlahkan tahap yang diukur.
-                    Klaim yang ditampilkan dibaca dari token; Observatory belum
-                    memverifikasi tanda tangan JWT secara independen. Token
-                    mentah tidak disimpan.
+                    Bukti dapat dikirim otomatis oleh GitHub Actions menggunakan
+                    token OIDC khusus atau diimpor operator sebagai cadangan.
+                    Status verifikasi setiap percobaan ditampilkan di bawah. Ini
+                    masih uji konektivitas WIF, belum deployment aplikasi atau
+                    perbandingan statistik tiga metode. Token mentah tidak
+                    disimpan.
                 </div>
                 {trials.map((trial) => (
                     <Card key={trial.id} className="shadow-none">
@@ -192,6 +192,24 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                         ))}
                                     </div>
                                     <div className="flex flex-wrap gap-4 text-sm">
+                                        <span>
+                                            Sumber:{' '}
+                                            <strong>
+                                                {trial.metadata.source ===
+                                                'oidc_authenticated_workflow_push'
+                                                    ? 'GitHub Actions otomatis'
+                                                    : 'Impor operator'}
+                                            </strong>
+                                        </span>
+                                        <span>
+                                            Tanda tangan JWT:{' '}
+                                            <strong>
+                                                {trial.metadata
+                                                    .signature_verified_by_observatory
+                                                    ? 'Terverifikasi'
+                                                    : 'Belum diverifikasi'}
+                                            </strong>
+                                        </span>
                                         <span>
                                             Harapan:{' '}
                                             <strong>

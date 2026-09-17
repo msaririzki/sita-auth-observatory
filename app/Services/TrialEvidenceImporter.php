@@ -14,13 +14,20 @@ use Illuminate\Validation\ValidationException;
 
 class TrialEvidenceImporter
 {
-    /** @param array<string, mixed> $evidence */
-    public function import(array $evidence): ExperimentTrial
-    {
+    /**
+     * @param  array<string, mixed>  $evidence
+     * @param  array<string, mixed>  $verifiedSubmissionClaims
+     */
+    public function import(
+        array $evidence,
+        string $source = 'operator_artifact_import',
+        bool $signatureVerified = false,
+        array $verifiedSubmissionClaims = [],
+    ): ExperimentTrial {
         $data = Validator::make(['evidence' => $evidence], $this->rules())->validate()['evidence'];
         $digest = hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($data, $digest): ExperimentTrial {
+        return DB::transaction(function () use ($data, $digest, $signatureVerified, $source, $verifiedSubmissionClaims): ExperimentTrial {
             $experiment = Experiment::query()->lockForUpdate()->whereKey($data['experiment_id'])->firstOrFail();
             $trial = $experiment->trials()->lockForUpdate()->whereKey($data['trial_id'])->firstOrFail();
             $matches = $experiment->profile->value === $data['profile']
@@ -89,10 +96,11 @@ class TrialEvidenceImporter
                 'failure_stage' => $failure['name'] ?? null,
                 'failure_reason' => $data['reason_code'] ?? null,
                 'sanitized_metadata' => [
-                    'source' => 'operator_artifact_import',
+                    'source' => $source,
                     'evidence_sha256' => $digest,
                     'measurement_valid' => $valid,
-                    'signature_verified_by_observatory' => false,
+                    'signature_verified_by_observatory' => $signatureVerified,
+                    'verified_submission_claims' => $verifiedSubmissionClaims,
                     'evidence' => $data,
                 ],
                 'finished_at' => $data['integrity']['generated_at'],
