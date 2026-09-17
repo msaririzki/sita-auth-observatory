@@ -82,13 +82,38 @@ type Props = {
     trials: Trial[];
 };
 const stageLabels: Record<string, string> = {
-    preflight: 'Validasi rancangan dan konfigurasi',
-    oidc_claim_capture: 'Pengambilan klaim OIDC',
-    wif_exchange_and_join: 'Autentikasi WIF + bergabung ke tailnet',
-    target_reachability: 'Keterjangkauan VM privat',
-    tailscale_ssh: 'Akses Tailscale SSH + versi Docker',
-    docker_deployment: 'Pembaruan kandidat SITA Docker',
-    application_healthcheck: 'Pemeriksaan kesehatan aplikasi SITA',
+    preflight: 'Memastikan pengaturan uji sudah siap',
+    oidc_claim_capture: 'Membaca identitas proses dari GitHub',
+    wif_exchange_and_join: 'Meminta akses privat lewat Tailscale',
+    target_reachability: 'Memastikan server SITA dapat dihubungi',
+    tailscale_ssh: 'Masuk ke server dan memeriksa Docker',
+    docker_deployment: 'Memperbarui kandidat aplikasi SITA',
+    application_healthcheck: 'Memastikan aplikasi SITA dapat dibuka',
+};
+
+const profileLabels: Record<string, string> = {
+    oauth_static: 'OAuth statis',
+    wif_basic: 'WIF dasar',
+    wif_multi_claim: 'WIF dengan pembatasan tambahan',
+};
+
+const scenarioLabels: Record<string, string> = {
+    valid: 'Akses yang seharusnya diizinkan',
+    wrong_audience: 'Tujuan token yang salah',
+};
+
+const statusLabels: Record<string, string> = {
+    pending: 'Menunggu',
+    running: 'Berjalan',
+    completed: 'Berhasil',
+    failed: 'Gagal',
+    cancelled: 'Dibatalkan',
+};
+
+const stageStatusLabels: Record<string, string> = {
+    pass: 'Berhasil',
+    fail: 'Gagal',
+    skipped: 'Dilewati',
 };
 
 type ClaimGuide = {
@@ -301,10 +326,32 @@ function duration(value: string | number | null): string {
         : `${Number(value).toLocaleString('id-ID', { maximumFractionDigits: 3 })} ms`;
 }
 
+function decisionLabel(value: string | null): string {
+    if (value === 'allow') {
+        return 'Diizinkan';
+    }
+    if (value === 'deny') {
+        return 'Ditolak';
+    }
+
+    return 'Belum tersedia';
+}
+
+function networkPathLabel(value: string | null): string {
+    const labels: Record<string, string> = {
+        direct: 'Langsung',
+        derp: 'Melalui relay Tailscale',
+        unknown: 'Tidak diketahui',
+    };
+
+    return value === null ? 'Belum tersedia' : (labels[value] ?? value);
+}
+
 export default function ExperimentEvidence({ experiment, trials }: Props) {
     const [claimView, setClaimView] = useState<'technical' | 'guided'>(
         'technical',
     );
+    const [explainedClaim, setExplainedClaim] = useState<string | null>(null);
     const form = useForm<{ evidence_file: File | null }>({
         evidence_file: null,
     });
@@ -326,24 +373,31 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                 </Button>
                 <header className="space-y-2">
                     <p className="text-sm font-medium text-indigo-600">
-                        Bukti autentikasi · Pilot fungsional
+                        Bukti hasil uji · Akses privat SITA
                     </p>
                     <h1 className="text-2xl font-semibold tracking-tight">
                         {experiment.name}
                     </h1>
-                    <p className="text-muted-foreground text-sm">
-                        {experiment.profile} · {experiment.scenario} ·{' '}
-                        {experiment.target} · {experiment.git_ref}
-                    </p>
-                    <Badge variant="outline">{experiment.status}</Badge>
+                    <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                        <span>
+                            Cara akses: {profileLabels[experiment.profile] ?? experiment.profile}
+                        </span>
+                        <span>
+                            Kondisi: {scenarioLabels[experiment.scenario] ?? experiment.scenario}
+                        </span>
+                        <span>Server: {experiment.target}</span>
+                        <span>Branch: {experiment.git_ref}</span>
+                    </div>
+                    <Badge variant="outline">
+                        {statusLabels[experiment.status] ?? experiment.status}
+                    </Badge>
                 </header>
                 <div className="bg-muted/30 rounded-xl border p-4 text-sm leading-6">
-                    Bukti dapat dikirim otomatis oleh GitHub Actions menggunakan
-                    token OIDC khusus atau diimpor operator sebagai cadangan.
-                    Status verifikasi setiap percobaan ditampilkan di bawah.
-                    Tahap kandidat Docker dan pemeriksaan aplikasi ditampilkan
-                    bila percobaan telah menjalankan deployment SITA terisolasi.
-                    Token mentah tidak disimpan.
+                    Halaman ini menjawab tiga hal: apakah GitHub membuktikan
+                    identitasnya, apakah akses privat ke server SITA berhasil,
+                    dan apakah kandidat aplikasi dapat berjalan. Nilai teknis
+                    tetap tersimpan untuk audit, tetapi token asli tidak
+                    disimpan.
                 </div>
                 {trials.map((trial) => (
                     <Card key={trial.id} className="shadow-none">
@@ -362,7 +416,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                 </div>
                             </div>
                             <CardDescription className="break-all">
-                                Trial ID: {trial.id}
+                                ID pencatatan: {trial.id}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
@@ -376,21 +430,21 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                                         {[
                                             [
-                                                'WIF + bergabung',
+                                                'Mendapatkan akses privat',
                                                 duration(
                                                     trial.authentication_ms,
                                                 ),
                                             ],
                                             [
-                                                'Keterjangkauan',
+                                                'Menjangkau server SITA',
                                                 duration(trial.reachability_ms),
                                             ],
                                             [
-                                                'SSH + Docker',
+                                                'Masuk server dan cek Docker',
                                                 duration(trial.ssh_ms),
                                             ],
                                             [
-                                                'Jumlah tahap diukur',
+                                                'Total waktu pemeriksaan',
                                                 duration(trial.total_ms),
                                             ],
                                         ].map(([label, value]) => (
@@ -418,7 +472,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                             </strong>
                                         </span>
                                         <span>
-                                            Tanda tangan JWT:{' '}
+                                            Bukti identitas GitHub:{' '}
                                             <strong>
                                                 {trial.metadata
                                                     .signature_verified_by_observatory
@@ -427,30 +481,36 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                             </strong>
                                         </span>
                                         <span>
-                                            Harapan:{' '}
+                                            Hasil yang diharapkan:{' '}
                                             <strong>
-                                                {trial.expected_decision}
+                                                {decisionLabel(
+                                                    trial.expected_decision,
+                                                )}
                                             </strong>
                                         </span>
                                         <span>
-                                            Aktual akses:{' '}
+                                            Hasil akses:{' '}
                                             <strong>
-                                                {trial.actual_decision}
+                                                {decisionLabel(
+                                                    trial.actual_decision,
+                                                )}
                                             </strong>
                                         </span>
                                         <span>
-                                            Jalur:{' '}
+                                            Jalur koneksi:{' '}
                                             <strong>
-                                                {trial.network_path}
+                                                {networkPathLabel(
+                                                    trial.network_path,
+                                                )}
                                             </strong>
                                         </span>
                                         <span>
-                                            Layak dianalisis:{' '}
+                                            Data dapat digunakan:{' '}
                                             <strong>
                                                 {trial.metadata
                                                     .measurement_valid
-                                                    ? 'Ya, sebagai pilot'
-                                                    : 'Tidak, kesalahan instrumen'}
+                                                    ? 'Ya'
+                                                    : 'Tidak, pemeriksaan belum lengkap'}
                                             </strong>
                                         </span>
                                     </div>
@@ -482,7 +542,9 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                         </td>
                                                         <td className="p-3">
                                                             <Badge variant="outline">
-                                                                {stage.status}
+                                                                {stageStatusLabels[
+                                                                    stage.status
+                                                                ] ?? stage.status}
                                                             </Badge>
                                                         </td>
                                                         <td className="p-3 tabular-nums">
@@ -499,12 +561,12 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                             <h2 className="flex items-center gap-2 font-medium">
                                                 <ShieldCheck className="size-4" />{' '}
-                                                Identitas yang dibuktikan GitHub
+                                                Data identitas dari GitHub
                                             </h2>
                                             <div
                                                 className="bg-muted inline-flex w-fit rounded-lg border p-1"
                                                 role="group"
-                                                aria-label="Pilih tampilan klaim OIDC"
+                                                aria-label="Pilih cara membaca data identitas GitHub"
                                             >
                                                 <button
                                                     type="button"
@@ -524,7 +586,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                         )
                                                     }
                                                 >
-                                                    Teknis ringkas
+                                                    Data asli
                                                 </button>
                                                 <button
                                                     type="button"
@@ -540,7 +602,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                         setClaimView('guided')
                                                     }
                                                 >
-                                                    Dengan penjelasan
+                                                    Panduan baca
                                                 </button>
                                             </div>
                                         </div>
@@ -566,39 +628,120 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                         </header>
                                                         <dl className="divide-y">
                                                             {section.entries.map(
-                                                                ([
-                                                                    key,
-                                                                    value,
-                                                                ]) => (
-                                                                    <div
-                                                                        key={
-                                                                            key
-                                                                        }
-                                                                        className="px-4 py-3"
-                                                                    >
-                                                                        <dt>
-                                                                            <code
-                                                                                className="text-sm font-semibold"
-                                                                                translate="no"
-                                                                            >
-                                                                                {
-                                                                                    key
-                                                                                }
-                                                                            </code>
-                                                                        </dt>
-                                                                        <dd className="mt-1 min-w-0">
-                                                                            <code
-                                                                                className="text-muted-foreground block overflow-x-auto text-sm break-all whitespace-pre-wrap"
-                                                                                translate="no"
-                                                                            >
-                                                                                {String(
-                                                                                    value ??
-                                                                                        'Tidak tersedia',
-                                                                                )}
-                                                                            </code>
-                                                                        </dd>
-                                                                    </div>
-                                                                ),
+                                                                ([key, value]) => {
+                                                                    const guide =
+                                                                        claimGuide(
+                                                                            key,
+                                                                        );
+                                                                    const readableTime =
+                                                                        guide.kind ===
+                                                                        'time'
+                                                                            ? formatUnixTime(
+                                                                                  value,
+                                                                              )
+                                                                            : null;
+                                                                    const isExplained =
+                                                                        explainedClaim ===
+                                                                        key;
+                                                                    const explanationId = `claim-explanation-${key}`;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={
+                                                                                key
+                                                                            }
+                                                                            className="px-4 py-3"
+                                                                        >
+                                                                            <dt className="flex items-center justify-between gap-3">
+                                                                                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                                                                                    <span className="text-sm font-medium">
+                                                                                        {
+                                                                                            guide.label
+                                                                                        }
+                                                                                    </span>
+                                                                                    <code
+                                                                                        className="text-muted-foreground text-xs"
+                                                                                        translate="no"
+                                                                                    >
+                                                                                        {
+                                                                                            key
+                                                                                        }
+                                                                                    </code>
+                                                                                </div>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex size-7 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                                                                    aria-expanded={
+                                                                                        isExplained
+                                                                                    }
+                                                                                    aria-controls={
+                                                                                        explanationId
+                                                                                    }
+                                                                                    aria-label={`Jelaskan data ${key}`}
+                                                                                    onClick={() =>
+                                                                                        setExplainedClaim(
+                                                                                            isExplained
+                                                                                                ? null
+                                                                                                : key,
+                                                                                        )
+                                                                                    }
+                                                                                >
+                                                                                    <CircleHelp
+                                                                                        className="size-4"
+                                                                                        aria-hidden="true"
+                                                                                    />
+                                                                                </button>
+                                                                            </dt>
+                                                                            <dd className="mt-1 min-w-0">
+                                                                                <code
+                                                                                    className="text-muted-foreground block overflow-x-auto text-sm break-all whitespace-pre-wrap"
+                                                                                    translate="no"
+                                                                                >
+                                                                                    {String(
+                                                                                        value ??
+                                                                                            'Tidak tersedia',
+                                                                                    )}
+                                                                                </code>
+                                                                            </dd>
+                                                                            {isExplained && (
+                                                                                <dd
+                                                                                    id={
+                                                                                        explanationId
+                                                                                    }
+                                                                                    className="bg-muted/30 mt-3 space-y-2 rounded-lg border p-3 text-sm leading-6"
+                                                                                >
+                                                                                    <p>
+                                                                                        {
+                                                                                            guide.summary
+                                                                                        }
+                                                                                    </p>
+                                                                                    {readableTime && (
+                                                                                        <p>
+                                                                                            <span className="text-muted-foreground">
+                                                                                                Waktu
+                                                                                                WITA:{' '}
+                                                                                            </span>
+                                                                                            <strong>
+                                                                                                {
+                                                                                                    readableTime
+                                                                                                }
+                                                                                            </strong>
+                                                                                        </p>
+                                                                                    )}
+                                                                                    <p>
+                                                                                        <span className="font-medium">
+                                                                                            Cara
+                                                                                            membaca:{' '}
+                                                                                        </span>
+                                                                                        {
+                                                                                            guide.reading
+                                                                                        }
+                                                                                    </p>
+                                                                                </dd>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                },
                                                             )}
                                                         </dl>
                                                     </section>
@@ -607,13 +750,9 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                         ) : (
                                             <div className="space-y-5">
                                                 <p className="text-muted-foreground text-sm leading-6">
-                                                    Tekan ikon{' '}
-                                                    <CircleHelp
-                                                        className="inline size-4 text-indigo-600"
-                                                        aria-hidden="true"
-                                                    />{' '}
-                                                    pada klaim yang ingin
-                                                    dipahami. Nilai teknis tetap
+                                                    Buka salah satu baris untuk
+                                                    melihat arti dan cara
+                                                    membacanya. Nilai asli tetap
                                                     ditampilkan sebagai bukti
                                                     penelitian.
                                                 </p>

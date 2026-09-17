@@ -46,19 +46,22 @@ type DashboardProps = {
 const profiles = [
     {
         name: 'OAuth statis',
-        description: 'Baseline dengan Client ID dan Client Secret tersimpan.',
+        description:
+            'Akses memakai identitas dan rahasia yang disimpan lebih lama.',
         icon: KeyRound,
         tone: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
     },
     {
         name: 'WIF dasar',
-        description: 'OIDC tanpa rahasia jangka panjang dengan Subject dasar.',
+        description:
+            'GitHub meminta akses sementara berdasarkan identitas proses yang berjalan.',
         icon: Radio,
         tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
     },
     {
         name: 'WIF multi-klaim',
-        description: 'OIDC dengan pembatasan repository, branch, dan workflow.',
+        description:
+            'Akses sementara hanya diberikan untuk repositori, branch, dan workflow yang disetujui.',
         icon: ShieldCheck,
         tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
     },
@@ -99,7 +102,7 @@ export default function Dashboard({
             icon: CheckCircle2,
         },
         {
-            label: 'Akurasi keputusan',
+            label: 'Hasil sesuai harapan',
             value:
                 summary.decision_accuracy === null
                     ? 'Belum ada data'
@@ -119,15 +122,15 @@ export default function Dashboard({
                                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-indigo-400 opacity-50 motion-reduce:animate-none" />
                                 <span className="relative inline-flex size-2 rounded-full bg-indigo-600" />
                             </span>
-                            Workload Identity Observatory
+                            SITA Auth Observatory
                         </div>
                         <h1 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">
-                            Pusat kendali eksperimen autentikasi
+                            Pemantauan uji akses SITA
                         </h1>
                         <p className="text-muted-foreground max-w-2xl text-sm leading-6 md:text-base">
-                            Jalankan satu profil pada satu waktu, amati
-                            tahapnya, dan simpan bukti OAuth serta WIF dalam
-                            format yang konsisten.
+                            Bandingkan cara GitHub Actions mendapat akses aman
+                            ke server SITA. Setiap uji menyimpan hasil dan
+                            bukti teknisnya secara terpisah.
                         </p>
                     </div>
                     <Button asChild>
@@ -143,9 +146,9 @@ export default function Dashboard({
                         className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100"
                         role="status"
                     >
-                        Kontrol GitHub belum dihubungkan. Eksperimen dapat
-                        dibuat sebagai draft, lalu dijalankan setelah GitHub App
-                        selesai dikonfigurasi.
+                        Pengiriman uji dari halaman ini belum dihubungkan ke
+                        GitHub. Anda tetap dapat membuat rencana uji, lalu
+                        menjalankannya dari GitHub Actions.
                     </div>
                 )}
 
@@ -181,10 +184,9 @@ export default function Dashboard({
                 <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
                     <Card className="shadow-none">
                         <CardHeader>
-                            <CardTitle>Tiga profil yang dibandingkan</CardTitle>
+                            <CardTitle>Cara akses yang dibandingkan</CardTitle>
                             <CardDescription>
-                                Perbedaannya dibatasi pada mekanisme autentikasi
-                                dan kebijakan klaim.
+                                Tiga cara GitHub mendapat akses ke server SITA.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="grid gap-3">

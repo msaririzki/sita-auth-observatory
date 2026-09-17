@@ -104,15 +104,14 @@ export default function ExperimentsIndex({
                 <section className="min-w-0 space-y-5">
                     <div className="space-y-2">
                         <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
-                            Experiment workspace
+                            Ruang kerja penelitian
                         </p>
                         <h1 className="text-2xl font-semibold tracking-tight text-balance">
                             Eksperimen autentikasi
                         </h1>
                         <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-                            Setiap eksperimen menguji satu profil secara
-                            berurutan agar waktu dan keputusan autentikasi dapat
-                            dibandingkan secara adil.
+                            Satu cara akses diuji pada satu waktu agar hasil
+                            setiap pengulangan dapat dibandingkan dengan adil.
                         </p>
                     </div>
 
@@ -122,7 +121,7 @@ export default function ExperimentsIndex({
                                 <CardTitle>Riwayat eksperimen</CardTitle>
                                 <CardDescription>
                                     {experiments.total.toLocaleString('id-ID')}{' '}
-                                    rancangan tersimpan
+                                    rencana uji tersimpan
                                 </CardDescription>
                             </div>
                             <Badge
@@ -130,7 +129,7 @@ export default function ExperimentsIndex({
                             >
                                 {dispatchReady
                                     ? 'Kontrol GitHub siap'
-                                    : 'Mode rancangan'}
+                                    : 'Rencana uji saja'}
                             </Badge>
                         </CardHeader>
                         <CardContent>
@@ -144,8 +143,8 @@ export default function ExperimentsIndex({
                                         Belum ada eksperimen
                                     </p>
                                     <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-                                        Isi form di samping untuk membuat batch
-                                        percobaan pertama.
+                                        Isi form di samping untuk membuat
+                                        rangkaian pengujian pertama.
                                     </p>
                                 </div>
                             ) : (
@@ -275,9 +274,9 @@ export default function ExperimentsIndex({
                 <aside>
                     <Card className="sticky top-6 shadow-none">
                         <CardHeader>
-                            <CardTitle>Rancang eksperimen</CardTitle>
+                            <CardTitle>Buat rencana pengujian</CardTitle>
                             <CardDescription>
-                                Percobaan akan dibuat berurutan, bukan paralel.
+                                Pengujian dijalankan satu per satu.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -309,7 +308,7 @@ export default function ExperimentsIndex({
 
                                 <div className="space-y-2">
                                     <Label htmlFor="profile">
-                                        Profil autentikasi
+                                        Cara akses yang diuji
                                     </Label>
                                     <Select
                                         name="profile"
@@ -338,7 +337,9 @@ export default function ExperimentsIndex({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="scenario">Skenario</Label>
+                                    <Label htmlFor="scenario">
+                                        Kondisi yang diuji
+                                    </Label>
                                     <Select
                                         name="scenario"
                                         value={form.data.scenario}
@@ -370,7 +371,7 @@ export default function ExperimentsIndex({
                                             className="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        Keputusan yang diharapkan:{' '}
+                                        Hasil yang seharusnya terjadi:{' '}
                                         <strong className="uppercase">
                                             {selectedScenario?.expected_decision ??
                                                 '—'}
@@ -380,7 +381,7 @@ export default function ExperimentsIndex({
 
                                 <div className="space-y-2">
                                     <Label htmlFor="target">
-                                        Target privat
+                                        Server tujuan (privat)
                                     </Label>
                                     <Select
                                         name="target"
@@ -415,7 +416,7 @@ export default function ExperimentsIndex({
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-2">
                                         <Label htmlFor="git_ref">
-                                            Git reference
+                                            Branch Git
                                         </Label>
                                         <div className="relative">
                                             <GitBranch
@@ -443,7 +444,7 @@ export default function ExperimentsIndex({
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="repetitions">
-                                            Pengulangan
+                                            Berapa kali diuji
                                         </Label>
                                         <Input
                                             id="repetitions"
@@ -465,7 +466,7 @@ export default function ExperimentsIndex({
 
                                 <div className="space-y-2">
                                     <Label htmlFor="cooldown_seconds">
-                                        Jeda antarpercobaan
+                                        Jeda antar uji
                                     </Label>
                                     <div className="relative">
                                         <Clock3
@@ -490,8 +491,8 @@ export default function ExperimentsIndex({
                                         />
                                     </div>
                                     <p className="text-muted-foreground text-xs">
-                                        Detik. Nilai awal 45 untuk mengurangi
-                                        pengaruh sesi sebelumnya.
+                                        Dalam detik. Nilai awal 45 membantu
+                                        mengurangi pengaruh uji sebelumnya.
                                     </p>
                                 </div>
 
@@ -503,13 +504,13 @@ export default function ExperimentsIndex({
                                     <Play aria-hidden="true" />
                                     {form.processing
                                         ? 'Menyimpan…'
-                                        : 'Buat rancangan eksperimen'}
+                                        : 'Simpan rencana pengujian'}
                                 </Button>
 
                                 {!dispatchReady && (
                                     <p className="text-muted-foreground text-center text-xs leading-5">
-                                        Rancangan disimpan sebagai draft sampai
-                                        GitHub App dihubungkan.
+                                        Rencana tersimpan, tetapi pengujian
+                                        masih dijalankan dari GitHub Actions.
                                     </p>
                                 )}
                             </form>
