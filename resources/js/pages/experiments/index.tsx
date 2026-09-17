@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Head, Link, router, useForm } from "@inertiajs/react";
+import { toast } from "sonner";
 import {
     Clock3,
     FlaskConical,
@@ -112,13 +113,33 @@ export default function ExperimentsIndex({
             return;
         }
 
+        let dispatchRejected = false;
+
         router.post(
             `/experiments/${experimentId}/dispatch`,
             {},
             {
                 preserveScroll: true,
                 onStart: () => setDispatchingExperimentId(experimentId),
-                onFinish: () => setDispatchingExperimentId(null),
+                onError: (errors) => {
+                    dispatchRejected = true;
+                    toast.error(
+                        errors.experiment ??
+                            "Permintaan tidak dapat dikirim ke GitHub Actions.",
+                    );
+                },
+                onFinish: () => {
+                    setDispatchingExperimentId(null);
+
+                    if (
+                        !dispatchRejected &&
+                        window.location.pathname === "/experiments"
+                    ) {
+                        window.location.assign(
+                            `/experiments/${experimentId}`,
+                        );
+                    }
+                },
             },
         );
     }
