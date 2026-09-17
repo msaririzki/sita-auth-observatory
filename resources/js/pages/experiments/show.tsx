@@ -340,10 +340,10 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                 <div className="bg-muted/30 rounded-xl border p-4 text-sm leading-6">
                     Bukti dapat dikirim otomatis oleh GitHub Actions menggunakan
                     token OIDC khusus atau diimpor operator sebagai cadangan.
-                    Status verifikasi setiap percobaan ditampilkan di bawah. Ini
-                    masih uji konektivitas WIF, belum deployment aplikasi atau
-                    perbandingan statistik tiga metode. Token mentah tidak
-                    disimpan.
+                    Status verifikasi setiap percobaan ditampilkan di bawah.
+                    Tahap kandidat Docker dan pemeriksaan aplikasi ditampilkan
+                    bila percobaan telah menjalankan deployment SITA terisolasi.
+                    Token mentah tidak disimpan.
                 </div>
                 {trials.map((trial) => (
                     <Card key={trial.id} className="shadow-none">
