@@ -94,8 +94,8 @@ class ExperimentController extends Controller
             return $experiment;
         });
 
-        return to_route('experiments.index')
-            ->with('success', "Eksperimen {$experiment->name} dibuat sebagai draft.");
+        return to_route('experiments.show', $experiment)
+            ->with('success', "Rencana {$experiment->name} tersimpan. Halaman ini siap memantau workflow saat dijalankan.");
     }
 
     public function dispatch(
@@ -153,7 +153,7 @@ class ExperimentController extends Controller
             ]);
         }
 
-        return to_route('experiments.index')
+        return to_route('experiments.show', $experiment)
             ->with('success', "Eksperimen {$experiment->name} dikirim ke GitHub Actions.");
     }
 

@@ -401,8 +401,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
 
     const monitoringActive = useMemo(
         () =>
-            liveExperimentStatus === 'queued' ||
-            liveExperimentStatus === 'running' ||
+            ['draft', 'queued', 'running'].includes(liveExperimentStatus) ||
             liveTrials.some(
                 (trial) => !['completed', 'failed', 'cancelled'].includes(trial.status),
             ),
@@ -484,12 +483,16 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                         )}
                         <div>
                             <p className="font-medium">
-                                {monitoringActive
+                                {liveExperimentStatus === 'draft'
+                                    ? 'Menunggu workflow GitHub dimulai'
+                                    : monitoringActive
                                     ? 'Pemantauan proses aktif'
                                     : 'Pemantauan proses selesai'}
                             </p>
                             <p className="text-muted-foreground text-xs">
-                                {monitoringActive
+                                {liveExperimentStatus === 'draft'
+                                    ? 'Halaman siap menerima status otomatis begitu workflow dimulai.'
+                                    : monitoringActive
                                     ? connectionStatus === 'connected'
                                         ? 'Status dikirim langsung dari workflow melalui sambungan aktif.'
                                         : 'Sambungan sedang dipulihkan secara otomatis.'

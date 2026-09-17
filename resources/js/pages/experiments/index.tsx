@@ -77,13 +77,13 @@ export default function ExperimentsIndex({
 }: ExperimentsProps) {
     const form = useForm({
         name: "",
-        profile: options.profiles[0]?.value ?? "oauth_static",
+        profile: "wif_basic",
         scenario: options.scenarios[0]?.value ?? "valid",
         target: options.targets[0] ?? "sita-docker",
-        git_ref: "main",
+        git_ref: "codex/wif-deploy-basic",
         commit_sha: "",
-        repetitions: 10,
-        cooldown_seconds: 45,
+        repetitions: 1,
+        cooldown_seconds: 0,
     });
 
     const selectedScenario = options.scenarios.find(

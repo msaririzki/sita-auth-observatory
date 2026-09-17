@@ -38,9 +38,9 @@ class ExperimentTest extends TestCase
             'cooldown_seconds' => 45,
         ]);
 
-        $response->assertRedirect(route('experiments.index'));
-
         $experiment = Experiment::query()->sole();
+
+        $response->assertRedirect(route('experiments.show', $experiment));
 
         $this->assertSame(Decision::Allow, $experiment->expected_decision);
         $this->assertSame(ExperimentStatus::Draft, $experiment->status);
@@ -65,7 +65,7 @@ class ExperimentTest extends TestCase
             'git_ref' => 'feature/untrusted',
             'repetitions' => 1,
             'cooldown_seconds' => 30,
-        ])->assertRedirect(route('experiments.index'));
+        ])->assertRedirect(route('experiments.show', Experiment::query()->sole()));
 
         $this->assertSame(Decision::Deny, Experiment::query()->sole()->expected_decision);
     }
@@ -116,7 +116,7 @@ class ExperimentTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('experiments.dispatch', $experiment))
-            ->assertRedirect(route('experiments.index'));
+            ->assertRedirect(route('experiments.show', $experiment));
 
         $this->assertSame(ExperimentStatus::Queued, $experiment->refresh()->status);
         $this->assertSame(
