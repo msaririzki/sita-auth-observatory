@@ -9,7 +9,7 @@ return [
     'github' => [
         'owner' => env('GITHUB_REPOSITORY_OWNER', 'msaririzki'),
         'repository' => env('GITHUB_REPOSITORY_NAME', 'sita'),
-        'workflow' => env('GITHUB_EXPERIMENT_WORKFLOW', 'auth-experiment.yml'),
+        'workflow' => env('GITHUB_EXPERIMENT_WORKFLOW', 'wif-poc.yml'),
         'token' => env('GITHUB_ACTIONS_TOKEN'),
     ],
 ];

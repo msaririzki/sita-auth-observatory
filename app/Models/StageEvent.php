@@ -2,10 +2,17 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $stage
+ * @property string $status
+ * @property string|float|null $duration_ms
+ * @property CarbonImmutable $occurred_at
+ */
 class StageEvent extends Model
 {
     use HasUlids;

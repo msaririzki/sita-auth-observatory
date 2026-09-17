@@ -1,5 +1,5 @@
 import { type FormEvent } from 'react';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     Clock3,
     FlaskConical,
@@ -203,6 +203,17 @@ export default function ExperimentsIndex({
                                                         </div>
                                                     </div>
                                                     <div className="flex shrink-0 items-center gap-3">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            asChild
+                                                        >
+                                                            <Link
+                                                                href={`/experiments/${experiment.id}`}
+                                                            >
+                                                                Lihat bukti
+                                                            </Link>
+                                                        </Button>
                                                         <span className="text-sm tabular-nums">
                                                             {
                                                                 experiment.completed_trials_count

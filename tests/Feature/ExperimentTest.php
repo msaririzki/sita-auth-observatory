@@ -103,8 +103,8 @@ class ExperimentTest extends TestCase
         $user = $this->createUser('dispatch');
 
         $this->actingAs($user)->post(route('experiments.store'), [
-            'name' => 'Pilot OAuth',
-            'profile' => 'oauth_static',
+            'name' => 'Pilot WIF dasar',
+            'profile' => 'wif_basic',
             'scenario' => 'valid',
             'target' => 'sita-docker',
             'git_ref' => 'main',
@@ -133,7 +133,7 @@ class ExperimentTest extends TestCase
                 && $request->hasHeader('Authorization', 'Bearer test-token')
                 && $request['ref'] === 'main'
                 && $request['inputs']['experiment_id'] === $experiment->id
-                && $request['inputs']['profile'] === 'oauth_static'
+                && $request['inputs']['profile'] === 'wif_basic'
                 && $request['inputs']['repetition'] === '1';
         });
 

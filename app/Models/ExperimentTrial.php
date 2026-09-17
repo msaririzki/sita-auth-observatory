@@ -14,6 +14,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property TrialStatus $status
  * @property Decision|null $actual_decision
  * @property DecisionClassification|null $classification
+ * @property int $sequence_number
+ * @property int|null $github_run_id
+ * @property int|null $run_attempt
+ * @property string|null $network_path
+ * @property string|float|null $authentication_duration_ms
+ * @property string|float|null $reachability_duration_ms
+ * @property string|float|null $ssh_duration_ms
+ * @property string|float|null $total_duration_ms
+ * @property array<string, mixed>|null $sanitized_metadata
  */
 class ExperimentTrial extends Model
 {

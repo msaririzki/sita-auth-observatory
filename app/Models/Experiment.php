@@ -16,6 +16,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ExperimentScenario $scenario
  * @property Decision $expected_decision
  * @property ExperimentStatus $status
+ * @property string $git_ref
+ * @property string|null $commit_sha
+ * @property string $target
  * @property-read int $trials_count
  * @property-read int $completed_trials_count
  */

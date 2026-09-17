@@ -96,6 +96,11 @@ class ExperimentController extends Controller
         Experiment $experiment,
         GitHubWorkflowDispatcher $dispatcher,
     ): RedirectResponse {
+        if ($experiment->profile->value !== 'wif_basic' || $experiment->scenario->value !== 'valid') {
+            throw ValidationException::withMessages([
+                'experiment' => 'Pilot pertama hanya mendukung WIF dasar dengan skenario valid.',
+            ]);
+        }
         if (! $dispatcher->isConfigured()) {
             throw ValidationException::withMessages([
                 'experiment' => 'GitHub App belum dikonfigurasi pada server Observatory.',
