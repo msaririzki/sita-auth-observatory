@@ -96,107 +96,180 @@ type ClaimGuide = {
     kind?: 'time';
 };
 
+type ClaimValue = string | number | null;
+
+type ClaimSection = {
+    id: string;
+    label: string;
+    description: string;
+    keys: string[];
+};
+
+const claimSections: ClaimSection[] = [
+    {
+        id: 'issuer-and-target',
+        label: '1. Penerbit dan tujuan token',
+        description: 'Menjawab siapa yang membuat token dan untuk layanan apa.',
+        keys: ['iss', 'aud'],
+    },
+    {
+        id: 'requester-identity',
+        label: '2. Identitas peminta akses',
+        description: 'Menunjukkan repositori dan pemilik yang meminta akses.',
+        keys: ['sub', 'repository', 'repository_id', 'repository_owner_id'],
+    },
+    {
+        id: 'workflow-context',
+        label: '3. Proses GitHub yang berjalan',
+        description: 'Menunjukkan branch, workflow, dan cara proses dimulai.',
+        keys: [
+            'ref',
+            'workflow_ref',
+            'job_workflow_ref',
+            'event_name',
+            'environment',
+        ],
+    },
+    {
+        id: 'validity-window',
+        label: '4. Masa berlaku token',
+        description:
+            'Menunjukkan kapan token dibuat, mulai berlaku, dan berakhir.',
+        keys: ['iat', 'nbf', 'exp'],
+    },
+    {
+        id: 'audit-trail',
+        label: '5. Jejak audit',
+        description:
+            'Sidik jari aman untuk membedakan setiap penerbitan token.',
+        keys: ['jti_sha256'],
+    },
+];
+
 const claimGuides: Record<string, ClaimGuide> = {
     aud: {
-        label: 'Tujuan token',
-        summary:
-            'Menentukan layanan yang boleh menerima token. Nilainya harus cocok dengan layanan tujuan.',
+        label: 'Token ini ditujukan ke mana?',
+        summary: 'Menentukan layanan yang diperbolehkan menerima token ini.',
         reading:
-            'Nilai api.tailscale.com berarti token ini diminta untuk proses autentikasi ke Tailscale.',
+            'Awalan api.tailscale.com menunjukkan bahwa token ditujukan kepada Tailscale. Bagian setelahnya adalah identitas tujuan yang dikonfigurasi pada Tailscale.',
     },
     event_name: {
-        label: 'Cara workflow dipicu',
-        summary: 'Menunjukkan kejadian yang memulai GitHub Actions.',
+        label: 'Bagaimana proses ini dimulai?',
+        summary: 'Menunjukkan pemicu yang menjalankan GitHub Actions.',
         reading:
-            'workflow_dispatch berarti percobaan dijalankan melalui tombol, API, atau antarmuka eksperimen; bukan otomatis karena push.',
+            'workflow_dispatch berarti proses dijalankan melalui tombol, API, atau antarmuka eksperimen.',
     },
     exp: {
-        label: 'Waktu token kedaluwarsa',
-        summary: 'Setelah waktu ini token tidak boleh diterima lagi.',
+        label: 'Kapan token berakhir?',
+        summary: 'Setelah waktu ini token tidak dapat digunakan lagi.',
         reading:
-            'Bandingkan dengan waktu penerbitan. Selisih keduanya menunjukkan masa berlaku token.',
+            'Lihat waktu WITA yang ditampilkan. Selisih antara iat dan exp adalah lama token berlaku.',
         kind: 'time',
     },
     iat: {
-        label: 'Waktu token diterbitkan',
-        summary: 'Waktu ketika GitHub membuat token OIDC.',
-        reading: 'Token mulai dihitung masa berlakunya dari waktu ini.',
+        label: 'Kapan token dibuat?',
+        summary: 'Waktu ketika GitHub Actions menerbitkan token OIDC.',
+        reading: 'Angka Unix ini diterjemahkan ke waktu WITA di bawah.',
         kind: 'time',
     },
     iss: {
-        label: 'Penerbit identitas',
-        summary: 'Pihak yang membuat dan menandatangani token OIDC.',
+        label: 'Siapa yang menerbitkan token?',
+        summary:
+            'Menunjukkan pihak yang membuat dan menandatangani token OIDC.',
         reading:
-            'token.actions.githubusercontent.com menunjukkan bahwa identitas diterbitkan oleh GitHub Actions.',
+            'Alamat token.actions.githubusercontent.com membuktikan bahwa penerbitnya adalah GitHub Actions.',
     },
     job_workflow_ref: {
-        label: 'Workflow asal pekerjaan',
+        label: 'Dari workflow mana pekerjaan berasal?',
         summary:
-            'Lokasi file workflow dan branch atau commit yang menjalankan pekerjaan.',
+            'Menunjukkan file workflow sumber beserta branch atau commit-nya.',
         reading:
-            'Baca dari kiri: repositori, lokasi file workflow, lalu bagian setelah @ adalah branch atau commit.',
+            'Sebelum tanda @ adalah repositori dan lokasi file. Setelah tanda @ adalah branch atau commit yang digunakan.',
     },
     jti_sha256: {
-        label: 'Sidik jari token',
+        label: 'Apa sidik jari audit token ini?',
         summary:
-            'Hash dari ID unik token untuk kebutuhan audit tanpa menyimpan ID atau token mentah.',
+            'Pencatat mengubah ID unik jti menjadi hash SHA-256 agar dapat diaudit tanpa menyimpan ID mentah.',
         reading:
-            'Nilai panjang ini bukan password. Gunakan untuk membedakan satu penerbitan token dari token lainnya.',
+            'Nilai panjang ini bukan kata sandi. Nilai yang berbeda berarti token diterbitkan pada kejadian yang berbeda.',
     },
     nbf: {
-        label: 'Mulai berlaku',
-        summary: 'Token tidak boleh digunakan sebelum waktu ini.',
+        label: 'Kapan token mulai boleh dipakai?',
+        summary: 'Token akan ditolak apabila digunakan sebelum waktu ini.',
         reading:
-            'Pemeriksa memastikan waktu server sudah melewati nilai ini sebelum menerima token.',
+            'Lihat waktu WITA yang ditampilkan. Waktu server harus sudah melewati nilai ini.',
         kind: 'time',
     },
     ref: {
-        label: 'Branch atau referensi Git',
-        summary: 'Branch atau tag yang menjalankan workflow.',
+        label: 'Branch mana yang menjalankan proses?',
+        summary: 'Menunjukkan branch atau tag Git yang sedang digunakan.',
         reading:
-            'refs/heads/codex/wif-poc berarti workflow dijalankan dari branch codex/wif-poc.',
+            'refs/heads/ berarti branch. Pada bukti ini nama branch-nya adalah codex/wif-poc.',
     },
     repository: {
-        label: 'Nama repositori',
-        summary: 'Repositori GitHub yang meminta identitas.',
+        label: 'Repositori mana yang meminta akses?',
+        summary: 'Menunjukkan repositori GitHub yang menjalankan proses.',
         reading:
-            'Formatnya adalah pemilik/repositori, misalnya msaririzki/sita.',
+            'Bagian sebelum garis miring adalah pemilik. Bagian setelahnya adalah nama repositori.',
     },
     repository_id: {
-        label: 'ID permanen repositori',
-        summary:
-            'Nomor unik dari GitHub yang tetap mengidentifikasi repositori walaupun namanya berubah.',
+        label: 'Apa ID tetap repositorinya?',
+        summary: 'Nomor unik yang diberikan GitHub kepada repositori.',
         reading:
-            'Kebijakan dapat memeriksa nomor ini untuk mencegah repositori lain memakai nama yang mirip.',
+            'Nomor ini tetap dapat mengenali repositori walaupun nama repositori diubah.',
     },
     repository_owner_id: {
-        label: 'ID permanen pemilik',
+        label: 'Apa ID tetap pemilik repositori?',
         summary: 'Nomor unik akun atau organisasi pemilik repositori.',
         reading:
-            'Nomor ini membuktikan pemilik sebenarnya, bukan hanya mencocokkan nama akun.',
+            'Nomor ini dipakai untuk memastikan pemilik yang benar walaupun nama akun berubah.',
     },
     sub: {
-        label: 'Identitas utama peminta',
+        label: 'Siapa yang meminta akses?',
         summary:
-            'Rangkuman subjek yang sedang meminta akses, dibentuk dari repositori dan konteks Git.',
+            'Identitas utama yang menggabungkan pemilik, repositori, dan branch peminta akses.',
         reading:
-            'Baca repo sebagai sumber identitas dan ref sebagai branch yang menjalankan pekerjaan.',
+            'repo menunjukkan sumber identitas. ref menunjukkan branch yang menjalankan pekerjaan.',
     },
     workflow_ref: {
-        label: 'Workflow yang dijalankan',
+        label: 'Workflow mana yang dijalankan?',
         summary:
-            'File GitHub Actions beserta branch atau commit yang digunakan pada percobaan.',
+            'Menunjukkan file GitHub Actions beserta branch atau commit-nya.',
         reading:
-            'Nilai ini membantu memastikan hanya workflow yang disetujui yang dapat meminta akses.',
+            'Kebijakan dapat memakai nilai ini agar hanya file workflow yang disetujui boleh meminta akses.',
     },
     environment: {
-        label: 'Lingkungan GitHub',
-        summary:
-            'Nama GitHub Environment yang digunakan, misalnya production atau staging.',
+        label: 'Lingkungan GitHub mana yang digunakan?',
+        summary: 'Nama GitHub Environment, misalnya production atau staging.',
         reading:
-            'Nilai ini dapat dijadikan syarat tambahan pada kebijakan WIF multi-klaim.',
+            'Nilai ini dapat membatasi akses hanya untuk lingkungan yang disetujui.',
     },
 };
+
+function groupClaims(claims: Record<string, ClaimValue>) {
+    const knownKeys = new Set(claimSections.flatMap((section) => section.keys));
+    const sections = claimSections.map((section) => ({
+        ...section,
+        entries: section.keys
+            .filter((key) => key in claims)
+            .map((key) => [key, claims[key]] as [string, ClaimValue]),
+    }));
+    const otherEntries = Object.entries(claims).filter(
+        ([key]) => !knownKeys.has(key),
+    );
+
+    if (otherEntries.length > 0) {
+        sections.push({
+            id: 'other-claims',
+            label: '6. Data teknis tambahan',
+            description: 'Klaim lain yang ikut diterbitkan bersama identitas.',
+            keys: otherEntries.map(([key]) => key),
+            entries: otherEntries,
+        });
+    }
+
+    return sections.filter((section) => section.entries.length > 0);
+}
 
 function claimGuide(key: string): ClaimGuide {
     return (
@@ -470,41 +543,67 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                             </div>
                                         </div>
                                         {claimView === 'technical' ? (
-                                            <div className="overflow-hidden rounded-xl border">
-                                                <dl className="divide-y">
-                                                    {Object.entries(
-                                                        trial.metadata.evidence
-                                                            .oidc_claims ?? {},
-                                                    ).map(([key, value]) => (
-                                                        <div
-                                                            key={key}
-                                                            className="px-4 py-3"
-                                                        >
-                                                            <dt>
-                                                                <code
-                                                                    className="text-sm font-semibold"
-                                                                    translate="no"
-                                                                >
-                                                                    {key}
-                                                                </code>
-                                                            </dt>
-                                                            <dd className="mt-1 min-w-0">
-                                                                <code
-                                                                    className="text-muted-foreground block overflow-x-auto text-sm break-all whitespace-pre-wrap"
-                                                                    translate="no"
-                                                                >
-                                                                    {String(
-                                                                        value ??
-                                                                            'Tidak tersedia',
-                                                                    )}
-                                                                </code>
-                                                            </dd>
-                                                        </div>
-                                                    ))}
-                                                </dl>
+                                            <div className="space-y-4">
+                                                {groupClaims(
+                                                    trial.metadata.evidence
+                                                        .oidc_claims ?? {},
+                                                ).map((section) => (
+                                                    <section
+                                                        key={section.id}
+                                                        className="overflow-hidden rounded-xl border"
+                                                    >
+                                                        <header className="bg-muted/40 border-b px-4 py-3">
+                                                            <h3 className="text-sm font-medium">
+                                                                {section.label}
+                                                            </h3>
+                                                            <p className="text-muted-foreground mt-1 text-xs leading-5">
+                                                                {
+                                                                    section.description
+                                                                }
+                                                            </p>
+                                                        </header>
+                                                        <dl className="divide-y">
+                                                            {section.entries.map(
+                                                                ([
+                                                                    key,
+                                                                    value,
+                                                                ]) => (
+                                                                    <div
+                                                                        key={
+                                                                            key
+                                                                        }
+                                                                        className="px-4 py-3"
+                                                                    >
+                                                                        <dt>
+                                                                            <code
+                                                                                className="text-sm font-semibold"
+                                                                                translate="no"
+                                                                            >
+                                                                                {
+                                                                                    key
+                                                                                }
+                                                                            </code>
+                                                                        </dt>
+                                                                        <dd className="mt-1 min-w-0">
+                                                                            <code
+                                                                                className="text-muted-foreground block overflow-x-auto text-sm break-all whitespace-pre-wrap"
+                                                                                translate="no"
+                                                                            >
+                                                                                {String(
+                                                                                    value ??
+                                                                                        'Tidak tersedia',
+                                                                                )}
+                                                                            </code>
+                                                                        </dd>
+                                                                    </div>
+                                                                ),
+                                                            )}
+                                                        </dl>
+                                                    </section>
+                                                ))}
                                             </div>
                                         ) : (
-                                            <div className="space-y-3">
+                                            <div className="space-y-5">
                                                 <p className="text-muted-foreground text-sm leading-6">
                                                     Tekan ikon{' '}
                                                     <CircleHelp
@@ -516,108 +615,134 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                     ditampilkan sebagai bukti
                                                     penelitian.
                                                 </p>
-                                                <div className="grid gap-3">
-                                                    {Object.entries(
-                                                        trial.metadata.evidence
-                                                            .oidc_claims ?? {},
-                                                    ).map(([key, value]) => {
-                                                        const guide =
-                                                            claimGuide(key);
-                                                        const readableTime =
-                                                            guide.kind ===
-                                                            'time'
-                                                                ? formatUnixTime(
-                                                                      value,
-                                                                  )
-                                                                : null;
+                                                {groupClaims(
+                                                    trial.metadata.evidence
+                                                        .oidc_claims ?? {},
+                                                ).map((section) => (
+                                                    <section
+                                                        key={section.id}
+                                                        className="space-y-2"
+                                                    >
+                                                        <header>
+                                                            <h3 className="text-sm font-medium">
+                                                                {section.label}
+                                                            </h3>
+                                                            <p className="text-muted-foreground mt-1 text-xs leading-5">
+                                                                {
+                                                                    section.description
+                                                                }
+                                                            </p>
+                                                        </header>
+                                                        <div className="grid gap-3">
+                                                            {section.entries.map(
+                                                                ([
+                                                                    key,
+                                                                    value,
+                                                                ]) => {
+                                                                    const guide =
+                                                                        claimGuide(
+                                                                            key,
+                                                                        );
+                                                                    const readableTime =
+                                                                        guide.kind ===
+                                                                        'time'
+                                                                            ? formatUnixTime(
+                                                                                  value,
+                                                                              )
+                                                                            : null;
 
-                                                        return (
-                                                            <details
-                                                                key={key}
-                                                                className="group overflow-hidden rounded-xl border"
-                                                            >
-                                                                <summary className="hover:bg-muted/40 flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <code
-                                                                                className="text-sm font-semibold"
-                                                                                translate="no"
-                                                                            >
-                                                                                {
-                                                                                    key
-                                                                                }
-                                                                            </code>
-                                                                            <span
-                                                                                className="inline-flex size-6 items-center justify-center rounded-full text-indigo-600"
-                                                                                title={`Jelaskan klaim ${key}`}
-                                                                                aria-label={`Jelaskan klaim ${key}`}
-                                                                            >
-                                                                                <CircleHelp
-                                                                                    className="size-4"
+                                                                    return (
+                                                                        <details
+                                                                            key={
+                                                                                key
+                                                                            }
+                                                                            className="group overflow-hidden rounded-xl border"
+                                                                        >
+                                                                            <summary className="hover:bg-muted/40 flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
+                                                                                <div className="min-w-0 flex-1">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <code
+                                                                                            className="text-sm font-semibold"
+                                                                                            translate="no"
+                                                                                        >
+                                                                                            {
+                                                                                                key
+                                                                                            }
+                                                                                        </code>
+                                                                                        <span
+                                                                                            className="inline-flex size-6 items-center justify-center rounded-full text-indigo-600"
+                                                                                            title={`Jelaskan klaim ${key}`}
+                                                                                            aria-label={`Jelaskan klaim ${key}`}
+                                                                                        >
+                                                                                            <CircleHelp
+                                                                                                className="size-4"
+                                                                                                aria-hidden="true"
+                                                                                            />
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <code
+                                                                                        className="text-muted-foreground mt-1 block overflow-x-auto text-sm break-all whitespace-pre-wrap"
+                                                                                        translate="no"
+                                                                                    >
+                                                                                        {String(
+                                                                                            value ??
+                                                                                                'Tidak tersedia',
+                                                                                        )}
+                                                                                    </code>
+                                                                                </div>
+                                                                                <ChevronDown
+                                                                                    className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
                                                                                     aria-hidden="true"
                                                                                 />
-                                                                            </span>
-                                                                        </div>
-                                                                        <code
-                                                                            className="text-muted-foreground mt-1 block overflow-x-auto text-sm break-all whitespace-pre-wrap"
-                                                                            translate="no"
-                                                                        >
-                                                                            {String(
-                                                                                value ??
-                                                                                    'Tidak tersedia',
-                                                                            )}
-                                                                        </code>
-                                                                    </div>
-                                                                    <ChevronDown
-                                                                        className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
-                                                                        aria-hidden="true"
-                                                                    />
-                                                                </summary>
-                                                                <div className="bg-muted/30 space-y-3 border-t px-4 py-4">
-                                                                    <div>
-                                                                        <p className="font-medium">
-                                                                            {
-                                                                                guide.label
-                                                                            }
-                                                                        </p>
-                                                                        <p className="text-muted-foreground mt-1 text-sm leading-6">
-                                                                            {
-                                                                                guide.summary
-                                                                            }
-                                                                        </p>
-                                                                    </div>
-                                                                    {readableTime && (
-                                                                        <p className="text-sm">
-                                                                            <span className="text-muted-foreground">
-                                                                                Waktu
-                                                                                yang
-                                                                                mudah
-                                                                                dibaca:{' '}
-                                                                            </span>
-                                                                            <strong>
-                                                                                {
-                                                                                    readableTime
-                                                                                }
-                                                                            </strong>{' '}
-                                                                            <span className="text-muted-foreground">
-                                                                                (WITA)
-                                                                            </span>
-                                                                        </p>
-                                                                    )}
-                                                                    <div className="bg-background rounded-lg border p-3 text-sm leading-6">
-                                                                        <span className="font-medium">
-                                                                            Cara
-                                                                            membaca:{' '}
-                                                                        </span>
-                                                                        {
-                                                                            guide.reading
-                                                                        }
-                                                                    </div>
-                                                                </div>
-                                                            </details>
-                                                        );
-                                                    })}
-                                                </div>
+                                                                            </summary>
+                                                                            <div className="bg-muted/30 space-y-3 border-t px-4 py-4">
+                                                                                <div>
+                                                                                    <p className="font-medium">
+                                                                                        {
+                                                                                            guide.label
+                                                                                        }
+                                                                                    </p>
+                                                                                    <p className="text-muted-foreground mt-1 text-sm leading-6">
+                                                                                        {
+                                                                                            guide.summary
+                                                                                        }
+                                                                                    </p>
+                                                                                </div>
+                                                                                {readableTime && (
+                                                                                    <p className="text-sm">
+                                                                                        <span className="text-muted-foreground">
+                                                                                            Waktu
+                                                                                            yang
+                                                                                            mudah
+                                                                                            dibaca:{' '}
+                                                                                        </span>
+                                                                                        <strong>
+                                                                                            {
+                                                                                                readableTime
+                                                                                            }
+                                                                                        </strong>{' '}
+                                                                                        <span className="text-muted-foreground">
+                                                                                            (WITA)
+                                                                                        </span>
+                                                                                    </p>
+                                                                                )}
+                                                                                <div className="bg-background rounded-lg border p-3 text-sm leading-6">
+                                                                                    <span className="font-medium">
+                                                                                        Cara
+                                                                                        membaca:{' '}
+                                                                                    </span>
+                                                                                    {
+                                                                                        guide.reading
+                                                                                    }
+                                                                                </div>
+                                                                            </div>
+                                                                        </details>
+                                                                    );
+                                                                },
+                                                            )}
+                                                        </div>
+                                                    </section>
+                                                ))}
                                             </div>
                                         )}
                                     </section>
