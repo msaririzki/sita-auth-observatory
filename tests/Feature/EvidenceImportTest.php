@@ -98,6 +98,19 @@ class EvidenceImportTest extends TestCase
         $this->assertSame('AUTHENTICATION_OR_ACCESS_DENIED', $trial->failure_reason);
     }
 
+    public function test_deployment_evidence_is_retained_after_a_successful_wif_trial(): void
+    {
+        $data = $this->evidence();
+        $data['stages'][] = ['name' => 'docker_deployment', 'status' => 'pass', 'duration_ms' => 4123.0];
+        $data['stages'][] = ['name' => 'application_healthcheck', 'status' => 'pass', 'duration_ms' => 425.0];
+
+        $trial = app(TrialEvidenceImporter::class)->import($data);
+
+        $this->assertSame(TrialStatus::Completed, $trial->status);
+        $this->assertSame(7, $trial->stageEvents()->count());
+        $this->assertEquals(13931.4, $trial->total_duration_ms);
+    }
+
     public function test_upload_requires_login_and_accepts_a_bound_json_file(): void
     {
         $data = $this->evidence();

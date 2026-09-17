@@ -57,13 +57,22 @@ class TrialEvidenceImporter
             foreach ($data['stages'] as $stage) {
                 $stages[$stage['name']] = $stage;
             }
-            if (count($stages) !== 5) {
-                throw ValidationException::withMessages(['evidence' => 'Lima tahap wajib unik.']);
+            $baseStages = ['preflight', 'oidc_claim_capture', 'wif_exchange_and_join', 'target_reachability', 'tailscale_ssh'];
+            $deploymentStages = ['docker_deployment', 'application_healthcheck'];
+            $hasDeploymentEvidence = isset($stages['docker_deployment'], $stages['application_healthcheck']);
+            $requiredStages = $hasDeploymentEvidence ? [...$baseStages, ...$deploymentStages] : $baseStages;
+            if (count($stages) !== count($requiredStages) || array_diff($requiredStages, array_keys($stages)) !== []) {
+                throw ValidationException::withMessages(['evidence' => 'Tahap bukti wajib unik dan lengkap.']);
             }
             $valid = $stages['preflight']['status'] === 'pass'
                 && $stages['oidc_claim_capture']['status'] === 'pass'
                 && ! empty($data['oidc_claims'])
                 && $stages['wif_exchange_and_join']['status'] !== 'skipped';
+            if ($hasDeploymentEvidence && $data['scenario'] === 'valid') {
+                $valid = $valid
+                    && $stages['docker_deployment']['status'] === 'pass'
+                    && $stages['application_healthcheck']['status'] === 'pass';
+            }
             $allowed = true;
             foreach (['wif_exchange_and_join', 'target_reachability', 'tailscale_ssh'] as $name) {
                 $allowed = $allowed && $stages[$name]['status'] === 'pass';
@@ -157,9 +166,9 @@ class TrialEvidenceImporter
             'evidence.tailscale.tags' => ['sometimes', 'array', 'max:10'],
             'evidence.tailscale.tags.*' => ['string', 'max:128'],
             'evidence.tailscale.network_path' => ['sometimes', Rule::in(['direct', 'derp', 'unknown'])],
-            'evidence.stages' => ['required', 'array', 'size:5'],
+            'evidence.stages' => ['required', 'array', 'min:5', 'max:7'],
             'evidence.stages.*' => ['array:name,status,duration_ms,reason_code'],
-            'evidence.stages.*.name' => ['required', Rule::in(['preflight', 'oidc_claim_capture', 'wif_exchange_and_join', 'target_reachability', 'tailscale_ssh'])],
+            'evidence.stages.*.name' => ['required', Rule::in(['preflight', 'oidc_claim_capture', 'wif_exchange_and_join', 'target_reachability', 'tailscale_ssh', 'docker_deployment', 'application_healthcheck'])],
             'evidence.stages.*.status' => ['required', Rule::in(['pass', 'fail', 'skipped'])],
             'evidence.stages.*.duration_ms' => ['required', 'numeric', 'min:0', 'max:7200000'],
             'evidence.stages.*.reason_code' => ['nullable', 'string', 'max:96', 'regex:/^[A-Z0-9_]+$/'],

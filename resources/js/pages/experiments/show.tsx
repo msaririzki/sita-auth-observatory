@@ -87,6 +87,8 @@ const stageLabels: Record<string, string> = {
     wif_exchange_and_join: 'Autentikasi WIF + bergabung ke tailnet',
     target_reachability: 'Keterjangkauan VM privat',
     tailscale_ssh: 'Akses Tailscale SSH + versi Docker',
+    docker_deployment: 'Pembaruan kandidat SITA Docker',
+    application_healthcheck: 'Pemeriksaan kesehatan aplikasi SITA',
 };
 
 type ClaimGuide = {
