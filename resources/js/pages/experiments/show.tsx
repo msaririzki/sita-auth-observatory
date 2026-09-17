@@ -2,7 +2,6 @@ import { type FormEvent } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
-    BookOpenText,
     ChevronDown,
     CircleHelp,
     FileJson,
@@ -423,33 +422,15 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                             <ShieldCheck className="size-4" />{' '}
                                             Identitas yang dibuktikan GitHub
                                         </h2>
-                                        <div className="bg-muted/30 flex gap-3 rounded-xl border p-4 text-sm leading-6">
-                                            <BookOpenText
-                                                className="mt-1 size-4 shrink-0"
+                                        <p className="text-muted-foreground text-sm leading-6">
+                                            Klaim teknis ditampilkan apa adanya
+                                            sebagai bukti penelitian. Tekan ikon{' '}
+                                            <CircleHelp
+                                                className="inline size-4 text-indigo-600"
                                                 aria-hidden="true"
-                                            />
-                                            <div>
-                                                <p className="font-medium">
-                                                    Cara membaca bagian ini
-                                                </p>
-                                                <p className="text-muted-foreground">
-                                                    Setiap baris adalah satu
-                                                    pernyataan identitas dari
-                                                    GitHub. Nama yang mudah
-                                                    dipahami ditampilkan lebih
-                                                    dahulu, sedangkan kode asli
-                                                    seperti{' '}
-                                                    <code translate="no">
-                                                        aud
-                                                    </code>{' '}
-                                                    tetap disimpan untuk bukti
-                                                    teknis. Tekan ikon bantuan
-                                                    atau barisnya untuk melihat
-                                                    penjelasan dan cara membaca
-                                                    nilainya.
-                                                </p>
-                                            </div>
-                                        </div>
+                                            />{' '}
+                                            pada klaim yang ingin dipahami.
+                                        </p>
                                         <div className="grid gap-3">
                                             {Object.entries(
                                                 trial.metadata.evidence
@@ -464,39 +445,56 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                 return (
                                                     <details
                                                         key={key}
-                                                        className="group rounded-xl border"
+                                                        className="group overflow-hidden rounded-xl border"
                                                     >
-                                                        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-xl p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
-                                                            <CircleHelp
-                                                                className="size-5 shrink-0 text-indigo-600"
-                                                                aria-hidden="true"
-                                                            />
+                                                        <summary className="hover:bg-muted/40 flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                                                                    <span className="font-medium">
-                                                                        {
-                                                                            guide.label
-                                                                        }
-                                                                    </span>
+                                                                <div className="flex items-center gap-2">
                                                                     <code
-                                                                        className="text-muted-foreground text-xs"
+                                                                        className="text-sm font-semibold"
                                                                         translate="no"
                                                                     >
                                                                         {key}
                                                                     </code>
+                                                                    <span
+                                                                        className="inline-flex size-6 items-center justify-center rounded-full text-indigo-600"
+                                                                        title={`Jelaskan klaim ${key}`}
+                                                                        aria-label={`Jelaskan klaim ${key}`}
+                                                                    >
+                                                                        <CircleHelp
+                                                                            className="size-4"
+                                                                            aria-hidden="true"
+                                                                        />
+                                                                    </span>
                                                                 </div>
-                                                                <p className="text-muted-foreground mt-1 text-sm">
+                                                                <code
+                                                                    className="text-muted-foreground mt-1 block overflow-x-auto text-sm break-all whitespace-pre-wrap"
+                                                                    translate="no"
+                                                                >
+                                                                    {String(
+                                                                        value ??
+                                                                            'Tidak tersedia',
+                                                                    )}
+                                                                </code>
+                                                            </div>
+                                                            <ChevronDown
+                                                                className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
+                                                                aria-hidden="true"
+                                                            />
+                                                        </summary>
+                                                        <div className="bg-muted/30 space-y-3 border-t px-4 py-4">
+                                                            <div>
+                                                                <p className="font-medium">
+                                                                    {
+                                                                        guide.label
+                                                                    }
+                                                                </p>
+                                                                <p className="text-muted-foreground mt-1 text-sm leading-6">
                                                                     {
                                                                         guide.summary
                                                                     }
                                                                 </p>
                                                             </div>
-                                                            <ChevronDown
-                                                                className="size-4 shrink-0 transition-transform group-open:rotate-180"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </summary>
-                                                        <div className="space-y-3 border-t px-4 pt-3 pb-4 sm:pl-12">
                                                             {readableTime && (
                                                                 <p className="text-sm">
                                                                     <span className="text-muted-foreground">
@@ -515,27 +513,12 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                                     </span>
                                                                 </p>
                                                             )}
-                                                            <p className="text-sm">
-                                                                <span className="text-muted-foreground">
+                                                            <div className="bg-background rounded-lg border p-3 text-sm leading-6">
+                                                                <span className="font-medium">
                                                                     Cara
-                                                                    baca:{' '}
+                                                                    membaca:{' '}
                                                                 </span>
                                                                 {guide.reading}
-                                                            </p>
-                                                            <div>
-                                                                <p className="text-muted-foreground mb-1 text-xs">
-                                                                    Nilai teknis
-                                                                    asli
-                                                                </p>
-                                                                <code
-                                                                    className="bg-muted block overflow-x-auto rounded-lg p-3 text-xs break-all whitespace-pre-wrap"
-                                                                    translate="no"
-                                                                >
-                                                                    {String(
-                                                                        value ??
-                                                                            'Tidak tersedia',
-                                                                    )}
-                                                                </code>
                                                             </div>
                                                         </div>
                                                     </details>
