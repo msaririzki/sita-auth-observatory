@@ -514,14 +514,15 @@ export default function ExperimentsIndex({
                                     <Play aria-hidden="true" />
                                     {form.processing
                                         ? "Menyimpan…"
-                                        : "Simpan dan buka pemantauan"}
+                                        : "Simpan rencana pengujian"}
                                 </Button>
 
                                 {!dispatchReady && (
                                     <p className="text-muted-foreground text-center text-xs leading-5">
-                                        Rencana tersimpan, tetapi pengujian
-                                        belum dimulai. Halaman pemantauan akan
-                                        terbuka untuk menunggu GitHub Actions.
+                                        Rencana yang disimpan akan langsung
+                                        muncul di riwayat. Buka bukti pada
+                                        kartu rencana untuk memantau GitHub
+                                        Actions.
                                     </p>
                                 )}
                             </form>

@@ -94,8 +94,8 @@ class ExperimentController extends Controller
             return $experiment;
         });
 
-        return to_route('experiments.show', $experiment)
-            ->with('success', "Rencana {$experiment->name} tersimpan. Halaman ini siap memantau workflow saat dijalankan.");
+        return to_route('experiments.index')
+            ->with('success', "Rencana {$experiment->name} tersimpan dan sudah muncul di riwayat. Buka bukti untuk memantau workflow saat dijalankan.");
     }
 
     public function dispatch(
