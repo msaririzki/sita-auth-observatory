@@ -395,7 +395,6 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
     const [liveExperimentStatus, setLiveExperimentStatus] = useState(
         experiment.status,
     );
-    const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
     const [connectionStatus, setConnectionStatus] = useState<
         'connecting' | 'connected' | 'reconnecting'
     >('connecting');
@@ -410,6 +409,43 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                 (trial) => !['completed', 'failed', 'cancelled'].includes(trial.status),
             ),
         [liveExperimentStatus, liveTrials],
+    );
+
+    const expectedStageNames = useMemo(
+        () =>
+            experiment.scenario === 'valid'
+                ? [...baseStageNames, ...deploymentStageNames]
+                : baseStageNames,
+        [experiment.scenario],
+    );
+
+    const activeTrial = useMemo(
+        () =>
+            liveTrials.find(
+                (trial) =>
+                    trial.status !== 'pending' &&
+                    !['completed', 'failed', 'cancelled'].includes(
+                        trial.status,
+                    ),
+            ) ?? null,
+        [liveTrials],
+    );
+
+    const activeStage = useMemo(
+        () =>
+            activeTrial?.stages.find((stage) => stage.status === 'running') ??
+            null,
+        [activeTrial],
+    );
+
+    const completedStages = useMemo(
+        () =>
+            activeTrial?.stages.filter(
+                (stage) =>
+                    expectedStageNames.includes(stage.name) &&
+                    ['pass', 'fail', 'skipped'].includes(stage.status),
+            ).length ?? 0,
+        [activeTrial, expectedStageNames],
     );
 
     useEffect(() => {
@@ -431,7 +467,6 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
             };
             setLiveExperimentStatus(payload.experiment.status);
             setLiveTrials(payload.trials);
-            setLastUpdatedAt(new Date());
             setConnectionStatus('connected');
         });
         stream.addEventListener('error', () => setConnectionStatus('reconnecting'));
@@ -491,8 +526,10 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                     ? 'Eksperimen belum dikirim'
                                     : liveExperimentStatus === 'queued'
                                       ? 'Permintaan sudah diterima GitHub Actions'
+                                      : activeStage !== null
+                                        ? `Sedang dilakukan: ${stageLabels[activeStage.name] ?? activeStage.name}`
                                       : monitoringActive
-                                    ? 'Pemantauan proses aktif'
+                                        ? 'Menunggu pembaruan tahap berikutnya'
                                     : 'Pemantauan proses selesai'}
                             </p>
                             <p className="text-muted-foreground text-xs">
@@ -500,18 +537,26 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                     ? 'Kembali ke riwayat eksperimen, lalu tekan Jalankan untuk mengirimnya ke GitHub Actions.'
                                     : liveExperimentStatus === 'queued'
                                       ? 'GitHub sedang memulai workflow. Tahap pemeriksaan akan muncul otomatis di halaman ini tanpa membuka GitHub.'
+                                      : activeStage !== null
+                                        ? `Percobaan #${activeTrial?.sequence} sedang menjalankan langkah ini. Tabel pemeriksaan di bawah akan diperbarui otomatis.`
                                     : monitoringActive
                                     ? connectionStatus === 'connected'
-                                        ? 'Status dikirim langsung dari workflow melalui sambungan aktif.'
+                                          ? 'Workflow masih berjalan dan halaman menunggu laporan tahap berikutnya.'
                                         : 'Sambungan sedang dipulihkan secara otomatis.'
                                     : 'Hasil akhir dan bukti telah tersimpan.'}
                             </p>
                         </div>
                     </div>
-                    {lastUpdatedAt && (
-                        <span className="text-muted-foreground text-xs">
-                            Diperbarui {lastUpdatedAt.toLocaleTimeString('id-ID')}
-                        </span>
+                    {activeTrial !== null && (
+                        <div className="text-right text-xs">
+                            <p className="text-muted-foreground">
+                                Progres pemeriksaan
+                            </p>
+                            <p className="font-medium tabular-nums">
+                                Tahap {completedStages} dari{' '}
+                                {expectedStageNames.length} selesai
+                            </p>
+                        </div>
                     )}
                 </div>
                 <div className="bg-muted/30 rounded-xl border p-4 text-sm leading-6">
