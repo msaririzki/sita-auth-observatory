@@ -1,5 +1,5 @@
-import { type FormEvent } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { type FormEvent } from "react";
+import { Head, Link, router, useForm } from "@inertiajs/react";
 import {
     Clock3,
     FlaskConical,
@@ -7,25 +7,25 @@ import {
     Play,
     Server,
     ShieldAlert,
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
 type Option = {
     value: string;
@@ -42,7 +42,8 @@ type Experiment = {
     git_ref: string;
     status: string;
     trials_count: number;
-    completed_trials_count: number;
+    finalized_trials_count: number;
+    failed_trials_count: number;
 };
 
 type PaginatedExperiments = {
@@ -61,12 +62,12 @@ type ExperimentsProps = {
 };
 
 const statusLabels: Record<string, string> = {
-    draft: 'Draft',
-    queued: 'Antrean',
-    running: 'Berjalan',
-    completed: 'Selesai',
-    failed: 'Gagal',
-    cancelled: 'Dibatalkan',
+    draft: "Draft",
+    queued: "Antrean",
+    running: "Berjalan",
+    completed: "Selesai",
+    failed: "Gagal",
+    cancelled: "Dibatalkan",
 };
 
 export default function ExperimentsIndex({
@@ -75,12 +76,12 @@ export default function ExperimentsIndex({
     dispatchReady,
 }: ExperimentsProps) {
     const form = useForm({
-        name: '',
-        profile: options.profiles[0]?.value ?? 'oauth_static',
-        scenario: options.scenarios[0]?.value ?? 'valid',
-        target: options.targets[0] ?? 'sita-docker',
-        git_ref: 'main',
-        commit_sha: '',
+        name: "",
+        profile: options.profiles[0]?.value ?? "oauth_static",
+        scenario: options.scenarios[0]?.value ?? "valid",
+        target: options.targets[0] ?? "sita-docker",
+        git_ref: "main",
+        commit_sha: "",
         repetitions: 10,
         cooldown_seconds: 45,
     });
@@ -91,9 +92,9 @@ export default function ExperimentsIndex({
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        form.post('/experiments', {
+        form.post("/experiments", {
             preserveScroll: true,
-            onSuccess: () => form.reset('name', 'commit_sha'),
+            onSuccess: () => form.reset("name", "commit_sha"),
         });
     }
 
@@ -120,16 +121,16 @@ export default function ExperimentsIndex({
                             <div className="space-y-1.5">
                                 <CardTitle>Riwayat eksperimen</CardTitle>
                                 <CardDescription>
-                                    {experiments.total.toLocaleString('id-ID')}{' '}
+                                    {experiments.total.toLocaleString("id-ID")}{" "}
                                     rencana uji tersimpan
                                 </CardDescription>
                             </div>
                             <Badge
-                                variant={dispatchReady ? 'default' : 'outline'}
+                                variant={dispatchReady ? "default" : "outline"}
                             >
                                 {dispatchReady
-                                    ? 'Kontrol GitHub siap'
-                                    : 'Rencana uji saja'}
+                                    ? "Kontrol GitHub siap"
+                                    : "Rencana uji saja"}
                             </Badge>
                         </CardHeader>
                         <CardContent>
@@ -152,7 +153,7 @@ export default function ExperimentsIndex({
                                     {experiments.data.map((experiment) => {
                                         const progress =
                                             experiment.trials_count > 0
-                                                ? (experiment.completed_trials_count /
+                                                ? (experiment.finalized_trials_count /
                                                       experiment.trials_count) *
                                                   100
                                                 : 0;
@@ -215,17 +216,26 @@ export default function ExperimentsIndex({
                                                         </Button>
                                                         <span className="text-sm tabular-nums">
                                                             {
-                                                                experiment.completed_trials_count
+                                                                experiment.finalized_trials_count
                                                             }
                                                             /
                                                             {
                                                                 experiment.trials_count
-                                                            }{' '}
-                                                            selesai
+                                                            }{" "}
+                                                            diproses
                                                         </span>
+                                                        {experiment.failed_trials_count >
+                                                            0 && (
+                                                            <span className="text-destructive text-sm tabular-nums">
+                                                                {
+                                                                    experiment.failed_trials_count
+                                                                }{" "}
+                                                                gagal
+                                                            </span>
+                                                        )}
                                                         {dispatchReady &&
                                                             experiment.status ===
-                                                                'draft' && (
+                                                                "draft" && (
                                                                 <Button
                                                                     type="button"
                                                                     size="sm"
@@ -292,7 +302,7 @@ export default function ExperimentsIndex({
                                         value={form.data.name}
                                         onChange={(event) =>
                                             form.setData(
-                                                'name',
+                                                "name",
                                                 event.target.value,
                                             )
                                         }
@@ -314,7 +324,7 @@ export default function ExperimentsIndex({
                                         name="profile"
                                         value={form.data.profile}
                                         onValueChange={(value) =>
-                                            form.setData('profile', value)
+                                            form.setData("profile", value)
                                         }
                                     >
                                         <SelectTrigger
@@ -344,7 +354,7 @@ export default function ExperimentsIndex({
                                         name="scenario"
                                         value={form.data.scenario}
                                         onValueChange={(value) =>
-                                            form.setData('scenario', value)
+                                            form.setData("scenario", value)
                                         }
                                     >
                                         <SelectTrigger
@@ -371,10 +381,10 @@ export default function ExperimentsIndex({
                                             className="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        Hasil yang seharusnya terjadi:{' '}
+                                        Hasil yang seharusnya terjadi:{" "}
                                         <strong className="uppercase">
                                             {selectedScenario?.expected_decision ??
-                                                '—'}
+                                                "—"}
                                         </strong>
                                     </p>
                                 </div>
@@ -387,7 +397,7 @@ export default function ExperimentsIndex({
                                         name="target"
                                         value={form.data.target}
                                         onValueChange={(value) =>
-                                            form.setData('target', value)
+                                            form.setData("target", value)
                                         }
                                     >
                                         <SelectTrigger
@@ -432,7 +442,7 @@ export default function ExperimentsIndex({
                                                 value={form.data.git_ref}
                                                 onChange={(event) =>
                                                     form.setData(
-                                                        'git_ref',
+                                                        "git_ref",
                                                         event.target.value,
                                                     )
                                                 }
@@ -456,7 +466,7 @@ export default function ExperimentsIndex({
                                             value={form.data.repetitions}
                                             onChange={(event) =>
                                                 form.setData(
-                                                    'repetitions',
+                                                    "repetitions",
                                                     Number(event.target.value),
                                                 )
                                             }
@@ -484,7 +494,7 @@ export default function ExperimentsIndex({
                                             value={form.data.cooldown_seconds}
                                             onChange={(event) =>
                                                 form.setData(
-                                                    'cooldown_seconds',
+                                                    "cooldown_seconds",
                                                     Number(event.target.value),
                                                 )
                                             }
@@ -503,8 +513,8 @@ export default function ExperimentsIndex({
                                 >
                                     <Play aria-hidden="true" />
                                     {form.processing
-                                        ? 'Menyimpan…'
-                                        : 'Simpan rencana pengujian'}
+                                        ? "Menyimpan…"
+                                        : "Simpan rencana pengujian"}
                                 </Button>
 
                                 {!dispatchReady && (
@@ -525,8 +535,8 @@ export default function ExperimentsIndex({
 ExperimentsIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Experiments',
-            href: '/experiments',
+            title: "Experiments",
+            href: "/experiments",
         },
     ],
 };

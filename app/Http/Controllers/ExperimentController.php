@@ -27,7 +27,12 @@ class ExperimentController extends Controller
             'experiments' => Experiment::query()
                 ->withCount([
                     'trials',
-                    'trials as completed_trials_count' => fn ($query) => $query->where('status', TrialStatus::Completed),
+                    'trials as finalized_trials_count' => fn ($query) => $query->whereIn('status', [
+                        TrialStatus::Completed,
+                        TrialStatus::Failed,
+                        TrialStatus::Cancelled,
+                    ]),
+                    'trials as failed_trials_count' => fn ($query) => $query->where('status', TrialStatus::Failed),
                 ])
                 ->latest()
                 ->paginate(12)
@@ -43,7 +48,8 @@ class ExperimentController extends Controller
                     'git_ref' => $experiment->git_ref,
                     'status' => $experiment->status->value,
                     'trials_count' => $experiment->trials_count,
-                    'completed_trials_count' => $experiment->completed_trials_count,
+                    'finalized_trials_count' => $experiment->finalized_trials_count,
+                    'failed_trials_count' => $experiment->failed_trials_count,
                     'created_at' => $experiment->created_at?->toIso8601String(),
                 ]),
             'options' => [
