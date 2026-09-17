@@ -1,6 +1,13 @@
 import { type FormEvent } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, FileJson, ShieldCheck } from 'lucide-react';
+import {
+    ArrowLeft,
+    BookOpenText,
+    ChevronDown,
+    CircleHelp,
+    FileJson,
+    ShieldCheck,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -82,6 +89,138 @@ const stageLabels: Record<string, string> = {
     target_reachability: 'Keterjangkauan VM privat',
     tailscale_ssh: 'Akses Tailscale SSH + versi Docker',
 };
+
+type ClaimGuide = {
+    label: string;
+    summary: string;
+    reading: string;
+    kind?: 'time';
+};
+
+const claimGuides: Record<string, ClaimGuide> = {
+    aud: {
+        label: 'Tujuan token',
+        summary:
+            'Menentukan layanan yang boleh menerima token. Nilainya harus cocok dengan layanan tujuan.',
+        reading:
+            'Nilai api.tailscale.com berarti token ini diminta untuk proses autentikasi ke Tailscale.',
+    },
+    event_name: {
+        label: 'Cara workflow dipicu',
+        summary: 'Menunjukkan kejadian yang memulai GitHub Actions.',
+        reading:
+            'workflow_dispatch berarti percobaan dijalankan melalui tombol, API, atau antarmuka eksperimen; bukan otomatis karena push.',
+    },
+    exp: {
+        label: 'Waktu token kedaluwarsa',
+        summary: 'Setelah waktu ini token tidak boleh diterima lagi.',
+        reading:
+            'Bandingkan dengan waktu penerbitan. Selisih keduanya menunjukkan masa berlaku token.',
+        kind: 'time',
+    },
+    iat: {
+        label: 'Waktu token diterbitkan',
+        summary: 'Waktu ketika GitHub membuat token OIDC.',
+        reading: 'Token mulai dihitung masa berlakunya dari waktu ini.',
+        kind: 'time',
+    },
+    iss: {
+        label: 'Penerbit identitas',
+        summary: 'Pihak yang membuat dan menandatangani token OIDC.',
+        reading:
+            'token.actions.githubusercontent.com menunjukkan bahwa identitas diterbitkan oleh GitHub Actions.',
+    },
+    job_workflow_ref: {
+        label: 'Workflow asal pekerjaan',
+        summary:
+            'Lokasi file workflow dan branch atau commit yang menjalankan pekerjaan.',
+        reading:
+            'Baca dari kiri: repositori, lokasi file workflow, lalu bagian setelah @ adalah branch atau commit.',
+    },
+    jti_sha256: {
+        label: 'Sidik jari token',
+        summary:
+            'Hash dari ID unik token untuk kebutuhan audit tanpa menyimpan ID atau token mentah.',
+        reading:
+            'Nilai panjang ini bukan password. Gunakan untuk membedakan satu penerbitan token dari token lainnya.',
+    },
+    nbf: {
+        label: 'Mulai berlaku',
+        summary: 'Token tidak boleh digunakan sebelum waktu ini.',
+        reading:
+            'Pemeriksa memastikan waktu server sudah melewati nilai ini sebelum menerima token.',
+        kind: 'time',
+    },
+    ref: {
+        label: 'Branch atau referensi Git',
+        summary: 'Branch atau tag yang menjalankan workflow.',
+        reading:
+            'refs/heads/codex/wif-poc berarti workflow dijalankan dari branch codex/wif-poc.',
+    },
+    repository: {
+        label: 'Nama repositori',
+        summary: 'Repositori GitHub yang meminta identitas.',
+        reading:
+            'Formatnya adalah pemilik/repositori, misalnya msaririzki/sita.',
+    },
+    repository_id: {
+        label: 'ID permanen repositori',
+        summary:
+            'Nomor unik dari GitHub yang tetap mengidentifikasi repositori walaupun namanya berubah.',
+        reading:
+            'Kebijakan dapat memeriksa nomor ini untuk mencegah repositori lain memakai nama yang mirip.',
+    },
+    repository_owner_id: {
+        label: 'ID permanen pemilik',
+        summary: 'Nomor unik akun atau organisasi pemilik repositori.',
+        reading:
+            'Nomor ini membuktikan pemilik sebenarnya, bukan hanya mencocokkan nama akun.',
+    },
+    sub: {
+        label: 'Identitas utama peminta',
+        summary:
+            'Rangkuman subjek yang sedang meminta akses, dibentuk dari repositori dan konteks Git.',
+        reading:
+            'Baca repo sebagai sumber identitas dan ref sebagai branch yang menjalankan pekerjaan.',
+    },
+    workflow_ref: {
+        label: 'Workflow yang dijalankan',
+        summary:
+            'File GitHub Actions beserta branch atau commit yang digunakan pada percobaan.',
+        reading:
+            'Nilai ini membantu memastikan hanya workflow yang disetujui yang dapat meminta akses.',
+    },
+    environment: {
+        label: 'Lingkungan GitHub',
+        summary:
+            'Nama GitHub Environment yang digunakan, misalnya production atau staging.',
+        reading:
+            'Nilai ini dapat dijadikan syarat tambahan pada kebijakan WIF multi-klaim.',
+    },
+};
+
+function claimGuide(key: string): ClaimGuide {
+    return (
+        claimGuides[key] ?? {
+            label: key,
+            summary: 'Data teknis tambahan yang diterbitkan bersama identitas.',
+            reading: 'Nilai asli dipertahankan sebagai bukti audit.',
+        }
+    );
+}
+
+function formatUnixTime(value: string | number | null): string | null {
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds)) {
+        return null;
+    }
+
+    return new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'long',
+        timeStyle: 'long',
+        timeZone: 'Asia/Makassar',
+    }).format(new Date(seconds * 1000));
+}
 function duration(value: string | number | null): string {
     return value === null
         ? 'Tidak diukur'
@@ -282,29 +421,127 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                     <section className="space-y-3">
                                         <h2 className="flex items-center gap-2 font-medium">
                                             <ShieldCheck className="size-4" />{' '}
-                                            Klaim OIDC yang dikumpulkan
+                                            Identitas yang dibuktikan GitHub
                                         </h2>
-                                        <dl className="grid gap-2 rounded-xl border p-4">
+                                        <div className="bg-muted/30 flex gap-3 rounded-xl border p-4 text-sm leading-6">
+                                            <BookOpenText
+                                                className="mt-1 size-4 shrink-0"
+                                                aria-hidden="true"
+                                            />
+                                            <div>
+                                                <p className="font-medium">
+                                                    Cara membaca bagian ini
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    Setiap baris adalah satu
+                                                    pernyataan identitas dari
+                                                    GitHub. Nama yang mudah
+                                                    dipahami ditampilkan lebih
+                                                    dahulu, sedangkan kode asli
+                                                    seperti{' '}
+                                                    <code translate="no">
+                                                        aud
+                                                    </code>{' '}
+                                                    tetap disimpan untuk bukti
+                                                    teknis. Tekan ikon bantuan
+                                                    atau barisnya untuk melihat
+                                                    penjelasan dan cara membaca
+                                                    nilainya.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="grid gap-3">
                                             {Object.entries(
                                                 trial.metadata.evidence
                                                     .oidc_claims ?? {},
-                                            ).map(([key, value]) => (
-                                                <div
-                                                    key={key}
-                                                    className="grid gap-1 sm:grid-cols-[10rem_1fr]"
-                                                >
-                                                    <dt className="text-muted-foreground font-mono text-xs">
-                                                        {key}
-                                                    </dt>
-                                                    <dd className="font-mono text-xs break-all">
-                                                        {String(
-                                                            value ??
-                                                                'Tidak tersedia',
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                            ))}
-                                        </dl>
+                                            ).map(([key, value]) => {
+                                                const guide = claimGuide(key);
+                                                const readableTime =
+                                                    guide.kind === 'time'
+                                                        ? formatUnixTime(value)
+                                                        : null;
+
+                                                return (
+                                                    <details
+                                                        key={key}
+                                                        className="group rounded-xl border"
+                                                    >
+                                                        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-xl p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
+                                                            <CircleHelp
+                                                                className="size-5 shrink-0 text-indigo-600"
+                                                                aria-hidden="true"
+                                                            />
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                                                    <span className="font-medium">
+                                                                        {
+                                                                            guide.label
+                                                                        }
+                                                                    </span>
+                                                                    <code
+                                                                        className="text-muted-foreground text-xs"
+                                                                        translate="no"
+                                                                    >
+                                                                        {key}
+                                                                    </code>
+                                                                </div>
+                                                                <p className="text-muted-foreground mt-1 text-sm">
+                                                                    {
+                                                                        guide.summary
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                            <ChevronDown
+                                                                className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                                                                aria-hidden="true"
+                                                            />
+                                                        </summary>
+                                                        <div className="space-y-3 border-t px-4 pt-3 pb-4 sm:pl-12">
+                                                            {readableTime && (
+                                                                <p className="text-sm">
+                                                                    <span className="text-muted-foreground">
+                                                                        Waktu
+                                                                        yang
+                                                                        mudah
+                                                                        dibaca:{' '}
+                                                                    </span>
+                                                                    <strong>
+                                                                        {
+                                                                            readableTime
+                                                                        }
+                                                                    </strong>{' '}
+                                                                    <span className="text-muted-foreground">
+                                                                        (WITA)
+                                                                    </span>
+                                                                </p>
+                                                            )}
+                                                            <p className="text-sm">
+                                                                <span className="text-muted-foreground">
+                                                                    Cara
+                                                                    baca:{' '}
+                                                                </span>
+                                                                {guide.reading}
+                                                            </p>
+                                                            <div>
+                                                                <p className="text-muted-foreground mb-1 text-xs">
+                                                                    Nilai teknis
+                                                                    asli
+                                                                </p>
+                                                                <code
+                                                                    className="bg-muted block overflow-x-auto rounded-lg p-3 text-xs break-all whitespace-pre-wrap"
+                                                                    translate="no"
+                                                                >
+                                                                    {String(
+                                                                        value ??
+                                                                            'Tidak tersedia',
+                                                                    )}
+                                                                </code>
+                                                            </div>
+                                                        </div>
+                                                    </details>
+                                                );
+                                            })}
+                                        </div>
                                     </section>
                                     <div className="space-y-2 rounded-xl border p-4 text-xs">
                                         <p className="break-all">
