@@ -20,4 +20,6 @@ return [
     ],
 
     'progress_oidc_audience' => env('PROGRESS_OIDC_AUDIENCE', rtrim((string) env('APP_URL'), '/').'/api/v1/progress'),
+
+    'progress_stream_seconds' => (int) env('PROGRESS_STREAM_SECONDS', 55),
 ];

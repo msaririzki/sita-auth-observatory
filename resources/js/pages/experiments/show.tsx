@@ -392,6 +392,9 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
         experiment.status,
     );
     const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+    const [connectionStatus, setConnectionStatus] = useState<
+        'connecting' | 'connected' | 'reconnecting'
+    >('connecting');
     const form = useForm<{ evidence_file: File | null }>({
         evidence_file: null,
     });
@@ -416,36 +419,22 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
             return;
         }
 
-        let cancelled = false;
-        async function refreshProgress(): Promise<void> {
-            try {
-                const response = await fetch(`/experiments/${experiment.id}/progress`, {
-                    headers: { Accept: 'application/json' },
-                    credentials: 'same-origin',
-                });
-                if (!response.ok) {
-                    return;
-                }
-                const payload = (await response.json()) as {
-                    experiment: { status: string };
-                    trials: Trial[];
-                };
-                if (!cancelled) {
-                    setLiveExperimentStatus(payload.experiment.status);
-                    setLiveTrials(payload.trials);
-                    setLastUpdatedAt(new Date());
-                }
-            } catch {
-                // Monitoring tetap menampilkan data terakhir bila koneksi sementara terputus.
-            }
-        }
-
-        void refreshProgress();
-        const interval = window.setInterval(() => void refreshProgress(), 3000);
+        const stream = new EventSource(`/experiments/${experiment.id}/events`);
+        stream.addEventListener('open', () => setConnectionStatus('connected'));
+        stream.addEventListener('progress', (event) => {
+            const payload = JSON.parse((event as MessageEvent<string>).data) as {
+                experiment: { status: string };
+                trials: Trial[];
+            };
+            setLiveExperimentStatus(payload.experiment.status);
+            setLiveTrials(payload.trials);
+            setLastUpdatedAt(new Date());
+            setConnectionStatus('connected');
+        });
+        stream.addEventListener('error', () => setConnectionStatus('reconnecting'));
 
         return () => {
-            cancelled = true;
-            window.clearInterval(interval);
+            stream.close();
         };
     }, [experiment.id, monitoringActive]);
 
@@ -501,7 +490,9 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                             </p>
                             <p className="text-muted-foreground text-xs">
                                 {monitoringActive
-                                    ? 'Halaman memperbarui status setiap 3 detik.'
+                                    ? connectionStatus === 'connected'
+                                        ? 'Status dikirim langsung dari workflow melalui sambungan aktif.'
+                                        : 'Sambungan sedang dipulihkan secara otomatis.'
                                     : 'Hasil akhir dan bukti telah tersimpan.'}
                             </p>
                         </div>

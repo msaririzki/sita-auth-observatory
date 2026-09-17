@@ -121,6 +121,17 @@ class EvidenceImportTest extends TestCase
             ->assertRedirect(route('experiments.show', $data['experiment_id']));
     }
 
+    public function test_authenticated_user_can_open_the_live_progress_stream(): void
+    {
+        $data = $this->evidence();
+        config(['observatory.progress_stream_seconds' => 0]);
+
+        $this->actingAs(User::factory()->create(['email_verified_at' => now()]))
+            ->get(route('experiments.events', $data['experiment_id']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/event-stream; charset=UTF-8');
+    }
+
     /** @return array<string, mixed> */
     private function evidence(): array
     {

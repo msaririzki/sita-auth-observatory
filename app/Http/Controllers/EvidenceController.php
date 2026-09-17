@@ -13,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use JsonException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EvidenceController extends Controller
 {
@@ -38,6 +39,46 @@ class EvidenceController extends Controller
             'experiment' => ['status' => $experiment->status->value],
             'trials' => $trials->map(fn (ExperimentTrial $trial): array => $this->trialPayload($experiment, $trial)),
         ])->header('Cache-Control', 'no-store');
+    }
+
+    public function events(Experiment $experiment): StreamedResponse
+    {
+        return response()->stream(function () use ($experiment): void {
+            $deadline = microtime(true) + (int) config('observatory.progress_stream_seconds');
+            $lastHash = null;
+
+            while (ob_get_level() > 0) {
+                ob_end_flush();
+            }
+            ini_set('zlib.output_compression', '0');
+            echo "retry: 1000\n\n";
+            flush();
+
+            while (! connection_aborted() && microtime(true) < $deadline) {
+                $freshExperiment = Experiment::query()->findOrFail($experiment->id);
+                $trials = $freshExperiment->trials()->with('stageEvents')->orderBy('sequence_number')->get();
+                $payload = [
+                    'experiment' => ['status' => $freshExperiment->status->value],
+                    'trials' => $trials->map(fn (ExperimentTrial $trial): array => $this->trialPayload($freshExperiment, $trial)),
+                ];
+                $data = json_encode($payload, JSON_THROW_ON_ERROR);
+                $hash = hash('sha256', $data);
+
+                if ($hash !== $lastHash) {
+                    echo "event: progress\n";
+                    echo 'data: '.$data."\n\n";
+                    flush();
+                    $lastHash = $hash;
+                }
+
+                usleep(250000);
+            }
+        }, 200, [
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'Content-Type' => 'text/event-stream; charset=UTF-8',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     public function store(ImportEvidenceRequest $request, Experiment $experiment, TrialEvidenceImporter $importer): RedirectResponse

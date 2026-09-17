@@ -13,6 +13,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('experiments', [ExperimentController::class, 'store'])->name('experiments.store');
     Route::get('experiments/{experiment}', [EvidenceController::class, 'show'])->name('experiments.show');
     Route::get('experiments/{experiment}/progress', [EvidenceController::class, 'progress'])->name('experiments.progress');
+    Route::get('experiments/{experiment}/events', [EvidenceController::class, 'events'])->name('experiments.events');
     Route::post('experiments/{experiment}/evidence', [EvidenceController::class, 'store'])->name('experiments.evidence');
     Route::post('experiments/{experiment}/dispatch', [ExperimentController::class, 'dispatch'])
         ->name('experiments.dispatch');
