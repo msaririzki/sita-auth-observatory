@@ -347,6 +347,17 @@ function networkPathLabel(value: string | null): string {
     return value === null ? 'Belum tersedia' : (labels[value] ?? value);
 }
 
+function classificationLabel(value: string | null): string | null {
+    const labels: Record<string, string> = {
+        TP: 'Sesuai harapan (TP)',
+        TN: 'Sesuai harapan (TN)',
+        FP: 'Akses seharusnya ditolak (FP)',
+        FN: 'Akses seharusnya diizinkan (FN)',
+    };
+
+    return value === null ? null : (labels[value] ?? value);
+}
+
 export default function ExperimentEvidence({ experiment, trials }: Props) {
     const [claimView, setClaimView] = useState<'technical' | 'guided'>(
         'technical',
@@ -408,10 +419,15 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                 </CardTitle>
                                 <div className="flex gap-2">
                                     <Badge variant="outline">
-                                        {trial.status}
+                                        {statusLabels[trial.status] ??
+                                            trial.status}
                                     </Badge>
                                     {trial.classification && (
-                                        <Badge>{trial.classification}</Badge>
+                                        <Badge>
+                                            {classificationLabel(
+                                                trial.classification,
+                                            )}
+                                        </Badge>
                                     )}
                                 </div>
                             </div>
@@ -519,7 +535,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                             <thead className="bg-muted/40">
                                                 <tr>
                                                     <th className="p-3">
-                                                        Tahap
+                                                        Tahap pemeriksaan
                                                     </th>
                                                     <th className="p-3">
                                                         Hasil
@@ -889,7 +905,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                     </section>
                                     <div className="space-y-2 rounded-xl border p-4 text-xs">
                                         <p className="break-all">
-                                            SHA commit:{' '}
+                                            Versi kode SITA (SHA commit):{' '}
                                             <code>
                                                 {
                                                     trial.metadata.evidence
@@ -898,25 +914,25 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                             </code>
                                         </p>
                                         <p className="break-all">
-                                            SHA-256 bukti tersanitasi:{' '}
+                                            Sidik jari bukti (SHA-256):{' '}
                                             <code>
                                                 {trial.metadata.evidence_sha256}
                                             </code>
                                         </p>
                                         <p>
-                                            Collector:{' '}
+                                            Versi pencatat:{' '}
                                             {
                                                 trial.metadata.evidence
                                                     .integrity.collector_version
                                             }{' '}
-                                            · Kebijakan:{' '}
+                                            · Aturan uji:{' '}
                                             {
                                                 trial.metadata.evidence
                                                     .integrity.policy_version
                                             }
                                         </p>
                                         <p>
-                                            Dibuat:{' '}
+                                            · Dicatat:{' '}
                                             {
                                                 trial.metadata.evidence
                                                     .integrity.generated_at
@@ -952,12 +968,12 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                 <Card className="shadow-none">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <FileJson className="size-4" /> Impor bukti pilot
+                            <FileJson className="size-4" /> Unggah bukti dari GitHub
                         </CardTitle>
                         <CardDescription>
-                            Unggah trial-evidence.json dari artefak run. ID,
-                            ref, SHA, keputusan, dan struktur diperiksa. Bukti
-                            lama tidak ditimpa.
+                            Unggah berkas <code>trial-evidence.json</code> dari
+                            hasil GitHub Actions. Sistem memeriksa ID, branch,
+                            versi kode, dan hasil uji sebelum menyimpan bukti.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
