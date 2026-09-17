@@ -223,7 +223,8 @@ const claimGuides: Record<string, ClaimGuide> = {
     iat: {
         label: 'Kapan token dibuat?',
         summary: 'Waktu ketika GitHub Actions menerbitkan token OIDC.',
-        reading: 'Angka Unix ini diterjemahkan ke waktu WITA di bawah.',
+        reading:
+            'Angka Unix ini diterjemahkan ke waktu NTB/WITA (UTC+08:00) dan UTC di bawah.',
         kind: 'time',
     },
     iss: {
@@ -335,7 +336,10 @@ function claimGuide(key: string): ClaimGuide {
     );
 }
 
-function formatUnixTime(value: string | number | null): string | null {
+function formatUnixTime(
+    value: string | number | null,
+    timeZone: string,
+): string | null {
     const seconds = Number(value);
     if (!Number.isFinite(seconds)) {
         return null;
@@ -344,7 +348,7 @@ function formatUnixTime(value: string | number | null): string | null {
     return new Intl.DateTimeFormat('id-ID', {
         dateStyle: 'long',
         timeStyle: 'long',
-        timeZone: 'Asia/Makassar',
+        timeZone,
     }).format(new Date(seconds * 1000));
 }
 function duration(value: string | number | null): string {
@@ -724,6 +728,15 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                                         'time'
                                                                             ? formatUnixTime(
                                                                                   value,
+                                                                                  'Asia/Makassar',
+                                                                              )
+                                                                            : null;
+                                                                    const utcTime =
+                                                                        guide.kind ===
+                                                                        'time'
+                                                                            ? formatUnixTime(
+                                                                                  value,
+                                                                                  'UTC',
                                                                               )
                                                                             : null;
                                                                     const isExplained =
@@ -802,17 +815,33 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                                                         }
                                                                                     </p>
                                                                                     {readableTime && (
-                                                                                        <p>
+                                                                                        <div className="space-y-1">
+                                                                                            <p>
                                                                                             <span className="text-muted-foreground">
-                                                                                                Waktu
-                                                                                                WITA:{' '}
+                                                                                                    Waktu
+                                                                                                    NTB/WITA
+                                                                                                    (UTC+08:00):{' '}
                                                                                             </span>
                                                                                             <strong>
                                                                                                 {
                                                                                                     readableTime
                                                                                                 }
                                                                                             </strong>
-                                                                                        </p>
+                                                                                            </p>
+                                                                                            {utcTime && (
+                                                                                                <p>
+                                                                                                    <span className="text-muted-foreground">
+                                                                                                        Waktu
+                                                                                                        UTC:{' '}
+                                                                                                    </span>
+                                                                                                    <strong>
+                                                                                                        {
+                                                                                                            utcTime
+                                                                                                        }
+                                                                                                    </strong>
+                                                                                                </p>
+                                                                                            )}
+                                                                                        </div>
                                                                                     )}
                                                                                     <p>
                                                                                         <span className="font-medium">

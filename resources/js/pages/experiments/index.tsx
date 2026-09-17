@@ -94,7 +94,12 @@ export default function ExperimentsIndex({
         event.preventDefault();
         form.post("/experiments", {
             preserveScroll: true,
-            onSuccess: () => form.reset("name", "commit_sha"),
+            onSuccess: () => {
+                form.reset("name", "commit_sha");
+                router.reload({
+                    only: ["experiments"],
+                });
+            },
         });
     }
 
