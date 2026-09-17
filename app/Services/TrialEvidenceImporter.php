@@ -115,12 +115,18 @@ class TrialEvidenceImporter
                 'finished_at' => $data['integrity']['generated_at'],
             ]);
             foreach ($data['stages'] as $stage) {
-                $trial->stageEvents()->create([
-                    'stage' => $stage['name'], 'status' => $stage['status'],
+                $event = $trial->stageEvents()->where('stage', $stage['name'])->first();
+                $attributes = [
+                    'status' => $stage['status'],
                     'duration_ms' => $this->duration($stage),
                     'reason_code' => $stage['reason_code'] ?? null,
                     'occurred_at' => $data['integrity']['generated_at'],
-                ]);
+                ];
+                if ($event === null) {
+                    $trial->stageEvents()->create($attributes + ['stage' => $stage['name']]);
+                } else {
+                    $event->update($attributes);
+                }
             }
             $finished = $experiment->trials()->whereNotIn('status', [TrialStatus::Completed, TrialStatus::Failed])->doesntExist();
             $anyFailed = $experiment->trials()->where('status', TrialStatus::Failed)->exists();

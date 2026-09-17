@@ -18,4 +18,6 @@ return [
         'audience' => env('EVIDENCE_OIDC_AUDIENCE', rtrim((string) env('APP_URL'), '/').'/api/v1/evidence'),
         'discovery_url' => env('EVIDENCE_OIDC_DISCOVERY_URL', 'https://token.actions.githubusercontent.com/.well-known/openid-configuration'),
     ],
+
+    'progress_oidc_audience' => env('PROGRESS_OIDC_AUDIENCE', rtrim((string) env('APP_URL'), '/').'/api/v1/progress'),
 ];

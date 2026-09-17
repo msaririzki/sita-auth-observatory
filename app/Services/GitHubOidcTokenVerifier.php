@@ -12,7 +12,7 @@ use Throwable;
 class GitHubOidcTokenVerifier
 {
     /** @return array<string, mixed> */
-    public function verify(string $token): array
+    public function verify(string $token, ?string $expectedAudience = null): array
     {
         if ($token === '' || strlen($token) > 8192 || substr_count($token, '.') !== 2) {
             throw new AuthenticationException('Token OIDC tidak valid.');
@@ -48,7 +48,8 @@ class GitHubOidcTokenVerifier
 
         $audience = $claims['aud'] ?? null;
         $audiences = is_array($audience) ? $audience : [$audience];
-        if (($claims['iss'] ?? null) !== $issuer || ! in_array(config('observatory.evidence_oidc.audience'), $audiences, true)) {
+        $expectedAudience ??= (string) config('observatory.evidence_oidc.audience');
+        if (($claims['iss'] ?? null) !== $issuer || ! in_array($expectedAudience, $audiences, true)) {
             throw new AuthenticationException('Penerbit atau audience token OIDC tidak sesuai.');
         }
 

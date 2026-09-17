@@ -1,9 +1,12 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
+    CircleAlert,
     CircleHelp,
     FileJson,
+    LoaderCircle,
+    Radio,
     ShieldCheck,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +25,8 @@ type Stage = {
     name: string;
     status: string;
     duration_ms: string | number | null;
+    reason_code: string | null;
+    message: string | null;
     occurred_at: string;
 };
 type Evidence = {
@@ -58,6 +63,8 @@ type Trial = {
     reachability_ms: string | number | null;
     ssh_ms: string | number | null;
     total_ms: string | number | null;
+    failure_stage: string | null;
+    failure_reason: string | null;
     metadata: {
         source: string;
         evidence_sha256: string;
@@ -103,6 +110,12 @@ const scenarioLabels: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
     pending: 'Menunggu',
+    dispatched: 'Dikirim ke GitHub',
+    authenticating: 'Memeriksa identitas',
+    tailnet_joined: 'Akses privat tersambung',
+    target_reachable: 'Server dapat dijangkau',
+    ssh_verified: 'Akses server berhasil',
+    evidence_collected: 'Menyimpan bukti',
     running: 'Berjalan',
     completed: 'Berhasil',
     failed: 'Gagal',
@@ -110,10 +123,25 @@ const statusLabels: Record<string, string> = {
 };
 
 const stageStatusLabels: Record<string, string> = {
+    waiting: 'Menunggu',
+    running: 'Sedang berjalan',
     pass: 'Berhasil',
     fail: 'Gagal',
     skipped: 'Dilewati',
 };
+
+const baseStageNames = [
+    'preflight',
+    'oidc_claim_capture',
+    'wif_exchange_and_join',
+    'target_reachability',
+    'tailscale_ssh',
+];
+
+const deploymentStageNames = [
+    'docker_deployment',
+    'application_healthcheck',
+];
 
 type ClaimGuide = {
     label: string;
@@ -359,9 +387,68 @@ function classificationLabel(value: string | null): string | null {
 
 export default function ExperimentEvidence({ experiment, trials }: Props) {
     const [explainedClaim, setExplainedClaim] = useState<string | null>(null);
+    const [liveTrials, setLiveTrials] = useState(trials);
+    const [liveExperimentStatus, setLiveExperimentStatus] = useState(
+        experiment.status,
+    );
+    const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
     const form = useForm<{ evidence_file: File | null }>({
         evidence_file: null,
     });
+
+    const monitoringActive = useMemo(
+        () =>
+            liveExperimentStatus === 'queued' ||
+            liveExperimentStatus === 'running' ||
+            liveTrials.some(
+                (trial) => !['completed', 'failed', 'cancelled'].includes(trial.status),
+            ),
+        [liveExperimentStatus, liveTrials],
+    );
+
+    useEffect(() => {
+        setLiveTrials(trials);
+        setLiveExperimentStatus(experiment.status);
+    }, [experiment.status, trials]);
+
+    useEffect(() => {
+        if (!monitoringActive) {
+            return;
+        }
+
+        let cancelled = false;
+        async function refreshProgress(): Promise<void> {
+            try {
+                const response = await fetch(`/experiments/${experiment.id}/progress`, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    return;
+                }
+                const payload = (await response.json()) as {
+                    experiment: { status: string };
+                    trials: Trial[];
+                };
+                if (!cancelled) {
+                    setLiveExperimentStatus(payload.experiment.status);
+                    setLiveTrials(payload.trials);
+                    setLastUpdatedAt(new Date());
+                }
+            } catch {
+                // Monitoring tetap menampilkan data terakhir bila koneksi sementara terputus.
+            }
+        }
+
+        void refreshProgress();
+        const interval = window.setInterval(() => void refreshProgress(), 3000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(interval);
+        };
+    }, [experiment.id, monitoringActive]);
+
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         form.post(`/experiments/${experiment.id}/evidence`, {
@@ -396,9 +483,35 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                         <span>Branch: {experiment.git_ref}</span>
                     </div>
                     <Badge variant="outline">
-                        {statusLabels[experiment.status] ?? experiment.status}
+                        {statusLabels[liveExperimentStatus] ?? liveExperimentStatus}
                     </Badge>
                 </header>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 text-sm dark:border-indigo-900 dark:bg-indigo-950/20">
+                    <div className="flex items-center gap-2">
+                        {monitoringActive ? (
+                            <LoaderCircle className="size-4 animate-spin text-indigo-600" />
+                        ) : (
+                            <Radio className="size-4 text-emerald-600" />
+                        )}
+                        <div>
+                            <p className="font-medium">
+                                {monitoringActive
+                                    ? 'Pemantauan proses aktif'
+                                    : 'Pemantauan proses selesai'}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                                {monitoringActive
+                                    ? 'Halaman memperbarui status setiap 3 detik.'
+                                    : 'Hasil akhir dan bukti telah tersimpan.'}
+                            </p>
+                        </div>
+                    </div>
+                    {lastUpdatedAt && (
+                        <span className="text-muted-foreground text-xs">
+                            Diperbarui {lastUpdatedAt.toLocaleTimeString('id-ID')}
+                        </span>
+                    )}
+                </div>
                 <div className="bg-muted/30 rounded-xl border p-4 text-sm leading-6">
                     Halaman ini menjawab tiga hal: apakah GitHub membuktikan
                     identitasnya, apakah akses privat ke server SITA berhasil,
@@ -406,7 +519,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                     tetap tersimpan untuk audit, tetapi token asli tidak
                     disimpan.
                 </div>
-                {trials.map((trial) => (
+                {liveTrials.map((trial) => (
                     <Card key={trial.id} className="shadow-none">
                         <CardHeader>
                             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -432,10 +545,58 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            {trial.failure_stage && (
+                                <div className="flex gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                                    <CircleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
+                                    <div className="space-y-1">
+                                        <p className="font-medium">Proses berhenti pada tahap: {stageLabels[trial.failure_stage] ?? trial.failure_stage}</p>
+                                        <p className="text-muted-foreground">
+                                            {trial.failure_reason ?? 'Penyebab teknis belum dikirim oleh workflow.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="overflow-x-auto rounded-xl border">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-muted/40">
+                                        <tr>
+                                            <th className="p-3">Tahap pemeriksaan</th>
+                                            <th className="p-3">Hasil</th>
+                                            <th className="p-3">Durasi</th>
+                                            <th className="p-3">Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(experiment.scenario === 'valid'
+                                            ? [...baseStageNames, ...deploymentStageNames]
+                                            : baseStageNames
+                                        ).map((stageName) => {
+                                            const stage = trial.stages.find(
+                                                (candidate) => candidate.name === stageName,
+                                            );
+                                            const status = stage?.status ?? 'waiting';
+                                            return (
+                                                <tr key={stageName} className="border-t">
+                                                    <td className="p-3">{stageLabels[stageName] ?? stageName}</td>
+                                                    <td className="p-3">
+                                                        <Badge variant="outline">
+                                                            {stageStatusLabels[status] ?? status}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="p-3 tabular-nums">{duration(stage?.duration_ms ?? null)}</td>
+                                                    <td className="text-muted-foreground p-3 text-xs leading-5">
+                                                        {stage?.message ?? stage?.reason_code ?? (status === 'waiting' ? 'Belum dijalankan.' : 'Tidak ada catatan tambahan.')}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                             {!trial.metadata ? (
                                 <p className="text-muted-foreground text-sm">
-                                    Belum ada bukti. Tidak ada angka simulasi
-                                    yang ditampilkan.
+                                    Bukti akhir belum diterima. Tabel di atas
+                                    menunjukkan progres yang sudah terverifikasi.
                                 </p>
                             ) : (
                                 <>
@@ -525,49 +686,6 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                     : 'Tidak, pemeriksaan belum lengkap'}
                                             </strong>
                                         </span>
-                                    </div>
-                                    <div className="overflow-x-auto rounded-xl border">
-                                        <table className="w-full text-left text-sm">
-                                            <thead className="bg-muted/40">
-                                                <tr>
-                                                    <th className="p-3">
-                                                        Tahap pemeriksaan
-                                                    </th>
-                                                    <th className="p-3">
-                                                        Hasil
-                                                    </th>
-                                                    <th className="p-3">
-                                                        Durasi
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {trial.stages.map((stage) => (
-                                                    <tr
-                                                        key={stage.name}
-                                                        className="border-t"
-                                                    >
-                                                        <td className="p-3">
-                                                            {stageLabels[
-                                                                stage.name
-                                                            ] ?? stage.name}
-                                                        </td>
-                                                        <td className="p-3">
-                                                            <Badge variant="outline">
-                                                                {stageStatusLabels[
-                                                                    stage.status
-                                                                ] ?? stage.status}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="p-3 tabular-nums">
-                                                            {duration(
-                                                                stage.duration_ms,
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
                                     </div>
                                     <section className="space-y-3">
                                         <header className="space-y-1">

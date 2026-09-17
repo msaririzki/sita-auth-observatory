@@ -7,6 +7,7 @@ use App\Models\Experiment;
 use App\Models\ExperimentTrial;
 use App\Models\StageEvent;
 use App\Services\TrialEvidenceImporter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -27,6 +28,16 @@ class EvidenceController extends Controller
             ],
             'trials' => $trials->map(fn (ExperimentTrial $trial): array => $this->trialPayload($experiment, $trial)),
         ]);
+    }
+
+    public function progress(Experiment $experiment): JsonResponse
+    {
+        $trials = $experiment->trials()->with('stageEvents')->orderBy('sequence_number')->get();
+
+        return response()->json([
+            'experiment' => ['status' => $experiment->status->value],
+            'trials' => $trials->map(fn (ExperimentTrial $trial): array => $this->trialPayload($experiment, $trial)),
+        ])->header('Cache-Control', 'no-store');
     }
 
     public function store(ImportEvidenceRequest $request, Experiment $experiment, TrialEvidenceImporter $importer): RedirectResponse
@@ -58,7 +69,9 @@ class EvidenceController extends Controller
         $stages = $trial->stageEvents()->orderBy('occurred_at')->get()
             ->map(fn (StageEvent $event): array => [
                 'name' => $event->stage, 'status' => $event->status,
-                'duration_ms' => $event->duration_ms, 'occurred_at' => $event->occurred_at,
+                'duration_ms' => $event->duration_ms, 'reason_code' => $event->reason_code,
+                'message' => $event->sanitized_metadata['message'] ?? null,
+                'occurred_at' => $event->occurred_at,
             ]);
 
         return [
@@ -69,6 +82,7 @@ class EvidenceController extends Controller
             'network_path' => $trial->network_path, 'authentication_ms' => $trial->authentication_duration_ms,
             'reachability_ms' => $trial->reachability_duration_ms, 'ssh_ms' => $trial->ssh_duration_ms,
             'total_ms' => $trial->total_duration_ms, 'metadata' => $trial->sanitized_metadata, 'stages' => $stages,
+            'failure_stage' => $trial->failure_stage, 'failure_reason' => $trial->failure_reason,
         ];
     }
 }

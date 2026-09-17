@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Experiment;
+use App\Models\ExperimentTrial;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -37,6 +38,7 @@ class ApiEvidenceSubmissionTest extends TestCase
             'observatory.evidence_oidc.issuer' => 'https://token.actions.githubusercontent.com',
             'observatory.evidence_oidc.audience' => 'https://authlab.example.test/api/v1/evidence',
             'observatory.evidence_oidc.discovery_url' => 'https://token.actions.githubusercontent.com/.well-known/openid-configuration',
+            'observatory.progress_oidc_audience' => 'https://authlab.example.test/api/v1/progress',
         ]);
         Cache::flush();
         Http::fake([
@@ -86,6 +88,52 @@ class ApiEvidenceSubmissionTest extends TestCase
         $this->assertDatabaseEmpty('stage_events');
     }
 
+    public function test_signed_oidc_progress_is_visible_before_final_evidence_arrives(): void
+    {
+        $evidence = $this->evidence();
+        $payload = [
+            'experiment_id' => $evidence['experiment_id'],
+            'trial_id' => $evidence['trial_id'],
+            'stage' => [
+                'name' => 'preflight',
+                'status' => 'running',
+            ],
+        ];
+
+        $this->withToken($this->token($evidence, config('observatory.progress_oidc_audience')))
+            ->postJson('/api/v1/progress', $payload)
+            ->assertAccepted()
+            ->assertJsonPath('data.stage', 'preflight');
+
+        $trial = ExperimentTrial::query()->findOrFail($evidence['trial_id']);
+        $this->assertSame('authenticating', $trial->status->value);
+        $this->assertSame('running', $trial->stageEvents()->where('stage', 'preflight')->sole()->status);
+        $this->assertNull($trial->sanitized_metadata);
+
+        $payload['stage'] = [
+            'name' => 'preflight',
+            'status' => 'pass',
+        ];
+        $this->withToken($this->token($evidence, config('observatory.progress_oidc_audience')))
+            ->postJson('/api/v1/progress', $payload)
+            ->assertAccepted();
+
+        $this->assertSame('pass', $trial->fresh()->stageEvents()->where('stage', 'preflight')->sole()->status);
+    }
+
+    public function test_evidence_audience_token_cannot_submit_progress(): void
+    {
+        $evidence = $this->evidence();
+
+        $this->withToken($this->token($evidence))
+            ->postJson('/api/v1/progress', [
+                'experiment_id' => $evidence['experiment_id'],
+                'trial_id' => $evidence['trial_id'],
+                'stage' => ['name' => 'preflight', 'status' => 'running'],
+            ])
+            ->assertUnauthorized();
+    }
+
     /** @return array<string, mixed> */
     private function evidence(): array
     {
@@ -107,9 +155,14 @@ class ApiEvidenceSubmissionTest extends TestCase
     }
 
     /** @param array<string, mixed> $evidence */
-    private function token(array $evidence): string
+    private function token(array $evidence, ?string $audience = null): string
     {
-        return JWT::encode($this->claims($evidence), $this->privateKey, 'RS256', 'research-test-key');
+        $claims = $this->claims($evidence);
+        if ($audience !== null) {
+            $claims['aud'] = $audience;
+        }
+
+        return JWT::encode($claims, $this->privateKey, 'RS256', 'research-test-key');
     }
 
     /**
