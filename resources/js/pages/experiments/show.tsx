@@ -1,4 +1,4 @@
-import { type FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
@@ -227,6 +227,9 @@ function duration(value: string | number | null): string {
 }
 
 export default function ExperimentEvidence({ experiment, trials }: Props) {
+    const [claimView, setClaimView] = useState<'technical' | 'guided'>(
+        'technical',
+    );
     const form = useForm<{ evidence_file: File | null }>({
         evidence_file: null,
     });
@@ -418,57 +421,76 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                         </table>
                                     </div>
                                     <section className="space-y-3">
-                                        <h2 className="flex items-center gap-2 font-medium">
-                                            <ShieldCheck className="size-4" />{' '}
-                                            Identitas yang dibuktikan GitHub
-                                        </h2>
-                                        <p className="text-muted-foreground text-sm leading-6">
-                                            Klaim teknis ditampilkan apa adanya
-                                            sebagai bukti penelitian. Tekan ikon{' '}
-                                            <CircleHelp
-                                                className="inline size-4 text-indigo-600"
-                                                aria-hidden="true"
-                                            />{' '}
-                                            pada klaim yang ingin dipahami.
-                                        </p>
-                                        <div className="grid gap-3">
-                                            {Object.entries(
-                                                trial.metadata.evidence
-                                                    .oidc_claims ?? {},
-                                            ).map(([key, value]) => {
-                                                const guide = claimGuide(key);
-                                                const readableTime =
-                                                    guide.kind === 'time'
-                                                        ? formatUnixTime(value)
-                                                        : null;
-
-                                                return (
-                                                    <details
-                                                        key={key}
-                                                        className="group overflow-hidden rounded-xl border"
-                                                    >
-                                                        <summary className="hover:bg-muted/40 flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <code
-                                                                        className="text-sm font-semibold"
-                                                                        translate="no"
-                                                                    >
-                                                                        {key}
-                                                                    </code>
-                                                                    <span
-                                                                        className="inline-flex size-6 items-center justify-center rounded-full text-indigo-600"
-                                                                        title={`Jelaskan klaim ${key}`}
-                                                                        aria-label={`Jelaskan klaim ${key}`}
-                                                                    >
-                                                                        <CircleHelp
-                                                                            className="size-4"
-                                                                            aria-hidden="true"
-                                                                        />
-                                                                    </span>
-                                                                </div>
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <h2 className="flex items-center gap-2 font-medium">
+                                                <ShieldCheck className="size-4" />{' '}
+                                                Identitas yang dibuktikan GitHub
+                                            </h2>
+                                            <div
+                                                className="bg-muted inline-flex w-fit rounded-lg border p-1"
+                                                role="group"
+                                                aria-label="Pilih tampilan klaim OIDC"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                                                        claimView ===
+                                                        'technical'
+                                                            ? 'bg-background text-foreground shadow-sm'
+                                                            : 'text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                                    aria-pressed={
+                                                        claimView ===
+                                                        'technical'
+                                                    }
+                                                    onClick={() =>
+                                                        setClaimView(
+                                                            'technical',
+                                                        )
+                                                    }
+                                                >
+                                                    Teknis ringkas
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                                                        claimView === 'guided'
+                                                            ? 'bg-background text-foreground shadow-sm'
+                                                            : 'text-muted-foreground hover:text-foreground'
+                                                    }`}
+                                                    aria-pressed={
+                                                        claimView === 'guided'
+                                                    }
+                                                    onClick={() =>
+                                                        setClaimView('guided')
+                                                    }
+                                                >
+                                                    Dengan penjelasan
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {claimView === 'technical' ? (
+                                            <div className="overflow-hidden rounded-xl border">
+                                                <dl className="divide-y">
+                                                    {Object.entries(
+                                                        trial.metadata.evidence
+                                                            .oidc_claims ?? {},
+                                                    ).map(([key, value]) => (
+                                                        <div
+                                                            key={key}
+                                                            className="px-4 py-3"
+                                                        >
+                                                            <dt>
                                                                 <code
-                                                                    className="text-muted-foreground mt-1 block overflow-x-auto text-sm break-all whitespace-pre-wrap"
+                                                                    className="text-sm font-semibold"
+                                                                    translate="no"
+                                                                >
+                                                                    {key}
+                                                                </code>
+                                                            </dt>
+                                                            <dd className="mt-1 min-w-0">
+                                                                <code
+                                                                    className="text-muted-foreground block overflow-x-auto text-sm break-all whitespace-pre-wrap"
                                                                     translate="no"
                                                                 >
                                                                     {String(
@@ -476,55 +498,128 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                                                                             'Tidak tersedia',
                                                                     )}
                                                                 </code>
-                                                            </div>
-                                                            <ChevronDown
-                                                                className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
-                                                                aria-hidden="true"
-                                                            />
-                                                        </summary>
-                                                        <div className="bg-muted/30 space-y-3 border-t px-4 py-4">
-                                                            <div>
-                                                                <p className="font-medium">
-                                                                    {
-                                                                        guide.label
-                                                                    }
-                                                                </p>
-                                                                <p className="text-muted-foreground mt-1 text-sm leading-6">
-                                                                    {
-                                                                        guide.summary
-                                                                    }
-                                                                </p>
-                                                            </div>
-                                                            {readableTime && (
-                                                                <p className="text-sm">
-                                                                    <span className="text-muted-foreground">
-                                                                        Waktu
-                                                                        yang
-                                                                        mudah
-                                                                        dibaca:{' '}
-                                                                    </span>
-                                                                    <strong>
-                                                                        {
-                                                                            readableTime
-                                                                        }
-                                                                    </strong>{' '}
-                                                                    <span className="text-muted-foreground">
-                                                                        (WITA)
-                                                                    </span>
-                                                                </p>
-                                                            )}
-                                                            <div className="bg-background rounded-lg border p-3 text-sm leading-6">
-                                                                <span className="font-medium">
-                                                                    Cara
-                                                                    membaca:{' '}
-                                                                </span>
-                                                                {guide.reading}
-                                                            </div>
+                                                            </dd>
                                                         </div>
-                                                    </details>
-                                                );
-                                            })}
-                                        </div>
+                                                    ))}
+                                                </dl>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <p className="text-muted-foreground text-sm leading-6">
+                                                    Tekan ikon{' '}
+                                                    <CircleHelp
+                                                        className="inline size-4 text-indigo-600"
+                                                        aria-hidden="true"
+                                                    />{' '}
+                                                    pada klaim yang ingin
+                                                    dipahami. Nilai teknis tetap
+                                                    ditampilkan sebagai bukti
+                                                    penelitian.
+                                                </p>
+                                                <div className="grid gap-3">
+                                                    {Object.entries(
+                                                        trial.metadata.evidence
+                                                            .oidc_claims ?? {},
+                                                    ).map(([key, value]) => {
+                                                        const guide =
+                                                            claimGuide(key);
+                                                        const readableTime =
+                                                            guide.kind ===
+                                                            'time'
+                                                                ? formatUnixTime(
+                                                                      value,
+                                                                  )
+                                                                : null;
+
+                                                        return (
+                                                            <details
+                                                                key={key}
+                                                                className="group overflow-hidden rounded-xl border"
+                                                            >
+                                                                <summary className="hover:bg-muted/40 flex min-h-16 cursor-pointer list-none items-center gap-3 p-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 [&::-webkit-details-marker]:hidden">
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <code
+                                                                                className="text-sm font-semibold"
+                                                                                translate="no"
+                                                                            >
+                                                                                {
+                                                                                    key
+                                                                                }
+                                                                            </code>
+                                                                            <span
+                                                                                className="inline-flex size-6 items-center justify-center rounded-full text-indigo-600"
+                                                                                title={`Jelaskan klaim ${key}`}
+                                                                                aria-label={`Jelaskan klaim ${key}`}
+                                                                            >
+                                                                                <CircleHelp
+                                                                                    className="size-4"
+                                                                                    aria-hidden="true"
+                                                                                />
+                                                                            </span>
+                                                                        </div>
+                                                                        <code
+                                                                            className="text-muted-foreground mt-1 block overflow-x-auto text-sm break-all whitespace-pre-wrap"
+                                                                            translate="no"
+                                                                        >
+                                                                            {String(
+                                                                                value ??
+                                                                                    'Tidak tersedia',
+                                                                            )}
+                                                                        </code>
+                                                                    </div>
+                                                                    <ChevronDown
+                                                                        className="text-muted-foreground size-4 shrink-0 transition-transform group-open:rotate-180"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                </summary>
+                                                                <div className="bg-muted/30 space-y-3 border-t px-4 py-4">
+                                                                    <div>
+                                                                        <p className="font-medium">
+                                                                            {
+                                                                                guide.label
+                                                                            }
+                                                                        </p>
+                                                                        <p className="text-muted-foreground mt-1 text-sm leading-6">
+                                                                            {
+                                                                                guide.summary
+                                                                            }
+                                                                        </p>
+                                                                    </div>
+                                                                    {readableTime && (
+                                                                        <p className="text-sm">
+                                                                            <span className="text-muted-foreground">
+                                                                                Waktu
+                                                                                yang
+                                                                                mudah
+                                                                                dibaca:{' '}
+                                                                            </span>
+                                                                            <strong>
+                                                                                {
+                                                                                    readableTime
+                                                                                }
+                                                                            </strong>{' '}
+                                                                            <span className="text-muted-foreground">
+                                                                                (WITA)
+                                                                            </span>
+                                                                        </p>
+                                                                    )}
+                                                                    <div className="bg-background rounded-lg border p-3 text-sm leading-6">
+                                                                        <span className="font-medium">
+                                                                            Cara
+                                                                            membaca:{' '}
+                                                                        </span>
+                                                                        {
+                                                                            guide.reading
+                                                                        }
+                                                                    </div>
+                                                                </div>
+                                                            </details>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </section>
                                     <div className="space-y-2 rounded-xl border p-4 text-xs">
                                         <p className="break-all">
