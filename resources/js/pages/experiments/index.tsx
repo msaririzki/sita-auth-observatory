@@ -501,8 +501,8 @@ export default function ExperimentsIndex({
                                         />
                                     </div>
                                     <p className="text-muted-foreground text-xs">
-                                        Dalam detik. Nilai awal 45 membantu
-                                        mengurangi pengaruh uji sebelumnya.
+                                        Dalam detik. Gunakan 0 untuk satu uji;
+                                        gunakan jeda saat menjalankan pengulangan.
                                     </p>
                                 </div>
 
@@ -514,13 +514,14 @@ export default function ExperimentsIndex({
                                     <Play aria-hidden="true" />
                                     {form.processing
                                         ? "Menyimpan…"
-                                        : "Simpan rencana pengujian"}
+                                        : "Simpan dan buka pemantauan"}
                                 </Button>
 
                                 {!dispatchReady && (
                                     <p className="text-muted-foreground text-center text-xs leading-5">
                                         Rencana tersimpan, tetapi pengujian
-                                        masih dijalankan dari GitHub Actions.
+                                        belum dimulai. Halaman pemantauan akan
+                                        terbuka untuk menunggu GitHub Actions.
                                     </p>
                                 )}
                             </form>
