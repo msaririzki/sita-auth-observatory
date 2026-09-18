@@ -4,8 +4,8 @@
 
 | Atribut                         | Nilai                                      |
 | ------------------------------- | ------------------------------------------ |
-| Status                          | Pilot OAuth statis dan WIF dasar terbukti  |
-| Versi                           | 1.2.0                                      |
+| Status                          | Isolasi policy laboratorium dirancang      |
+| Versi                           | 1.3.0                                      |
 | Tanggal                         | 18 September 2026                          |
 | Pemilik                         | Muhamad Sari Rizki                         |
 | Repositori objek penelitian     | `msaririzki/sita`                          |
@@ -65,7 +65,7 @@ berstatus lulus. Nilai ini hanya validasi jalur dan instrumen; belum boleh
 dipakai menyimpulkan perbandingan OAuth dan WIF sebelum protokol akhir dibekukan
 dan seluruh pengulangan selesai.
 
-Kebijakan tailnet lama masih memuat *grant* umum `*` menuju `*`. Aturan OAuth
+Kebijakan tailnet lama masih memuat *grant* umum `*` menuju `*`. Audit menunjukkan tailnet utama juga memuat 28 perangkat, sehingga penghapusan grant umum tidak aman tanpa inventaris jalur akses. ADR 001 mendokumentasikan kebijakan laboratorium ketat sebagai kandidat yang belum diterapkan. Aturan OAuth
 yang baru tetap dicatat dan diuji untuk TCP/22 serta Tailscale SSH, tetapi
 *grant* umum tersebut berarti pilot ini belum membuktikan segmentasi jaringan
 paling ketat. Sebelum eksperimen final yang mengukur penolakan target atau
@@ -635,7 +635,11 @@ Sistem dinyatakan siap untuk eksperimen final jika:
 - VM target dapat gagal tanpa menghilangkan bukti pada GitHub; dan
 - versi Collector, schema, policy, SITA commit, dan dashboard tercatat.
 
-## 20. Referensi Teknis Utama
+## 20. Architecture Decision Record
+
+- [ADR 001: Isolasi Kebijakan Akses untuk Laboratorium WIF SITA](ADR/001-laboratory-tailnet-isolation.md)
+
+## 21. Referensi Teknis Utama
 
 - OpenID Connect Core: <https://openid.net/specs/openid-connect-core-1_0-18.html>
 - GitHub Actions OIDC: <https://docs.github.com/en/actions/reference/security/oidc>

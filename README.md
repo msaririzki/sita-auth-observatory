@@ -17,6 +17,7 @@ bukti penelitian.
 
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
 - [UI/UX Blueprint](docs/UI_UX_BLUEPRINT.md)
+- [ADR 001: Isolasi Kebijakan Akses Laboratorium](docs/ADR/001-laboratory-tailnet-isolation.md)
 
 Implementasi berada pada branch `codex/observatory-foundation`. Fondasi memakai
 Laravel 13, PHP 8.4, Inertia 3, React 19, dan database SQLite pada volume
