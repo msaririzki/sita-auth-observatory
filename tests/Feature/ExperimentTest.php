@@ -213,6 +213,40 @@ class ExperimentTest extends TestCase
         );
     }
 
+    public function test_dispatch_accepts_a_multi_claim_branch_rejection_trial(): void
+    {
+        config([
+            'observatory.github.token' => 'test-token',
+            'observatory.github.owner' => 'msaririzki',
+            'observatory.github.repository' => 'sita',
+            'observatory.github.workflow' => 'wif-poc.yml',
+        ]);
+        Queue::fake();
+
+        $user = $this->createUser('wif-multi-claim-branch-denial');
+        $this->actingAs($user)->post(route('experiments.store'), [
+            'name' => 'Penolakan branch WIF multi-klaim',
+            'profile' => 'wif_multi_claim',
+            'scenario' => 'wrong_branch',
+            'target' => 'sita-docker',
+            'git_ref' => 'codex/wif-multiclaim-deny-branch',
+            'repetitions' => 1,
+            'cooldown_seconds' => 0,
+        ]);
+
+        $experiment = Experiment::query()->sole();
+
+        $this->actingAs($user)
+            ->post(route('experiments.dispatch', $experiment))
+            ->assertRedirect(route('experiments.show', $experiment));
+
+        $this->assertSame(ExperimentStatus::Queued, $experiment->fresh()->status);
+        Queue::assertPushed(
+            DispatchExperimentTrial::class,
+            fn (DispatchExperimentTrial $job): bool => $job->experimentId === $experiment->id,
+        );
+    }
+
     public function test_dispatch_can_use_a_repository_scoped_github_app_identity(): void
     {
         $privateKey = openssl_pkey_new([

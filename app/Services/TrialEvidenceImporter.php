@@ -171,7 +171,7 @@ class TrialEvidenceImporter
             'evidence.trial_id' => ['required', 'ulid'],
             'evidence.correlation_id' => ['required', 'uuid'],
             'evidence.profile' => ['required', Rule::in(['oauth_static', 'wif_basic', 'wif_multi_claim'])],
-            'evidence.scenario' => ['required', Rule::in(['valid', 'wrong_audience'])],
+            'evidence.scenario' => ['required', Rule::in(['valid', 'wrong_audience', 'wrong_branch'])],
             'evidence.repetition' => ['required', 'integer', 'min:1', 'max:30'],
             'evidence.expected_decision' => ['required', Rule::in(['allow', 'deny'])],
             'evidence.actual_decision' => ['required', Rule::in(['allow', 'deny'])],

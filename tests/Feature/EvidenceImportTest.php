@@ -131,6 +131,31 @@ class EvidenceImportTest extends TestCase
         $this->assertSame('AUTHENTICATION_OR_ACCESS_DENIED', $trial->failure_reason);
     }
 
+    public function test_expected_branch_rejection_is_recorded_as_a_true_negative(): void
+    {
+        $data = $this->evidence();
+        Experiment::query()->findOrFail($data['experiment_id'])->update([
+            'profile' => 'wif_multi_claim',
+            'scenario' => 'wrong_branch',
+            'expected_decision' => 'deny',
+        ]);
+        $data['profile'] = 'wif_multi_claim';
+        $data['scenario'] = 'wrong_branch';
+        $data['expected_decision'] = 'deny';
+        $data['actual_decision'] = 'deny';
+        $data['classification'] = 'TN';
+        $data['reason_code'] = 'AUTHENTICATION_OR_ACCESS_DENIED';
+        $data['stages'][2]['status'] = 'fail';
+        $data['stages'][3]['status'] = 'skipped';
+        $data['stages'][4]['status'] = 'skipped';
+
+        $trial = app(TrialEvidenceImporter::class)->import($data);
+
+        $this->assertSame(TrialStatus::Completed, $trial->status);
+        $this->assertSame('TN', $trial->classification->value);
+        $this->assertSame('wif_exchange_and_join', $trial->failure_stage);
+    }
+
     public function test_deployment_evidence_is_retained_after_a_successful_wif_trial(): void
     {
         $data = $this->evidence();
