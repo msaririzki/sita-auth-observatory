@@ -34,8 +34,10 @@ Docker. Aplikasi SITA tetap berjalan pada repositori terpisah.
 - JSON Schema bukti v1 dan fixture TP/TN tersedia pada `schemas/` dan
   `fixtures/`.
 - Algoritma klasifikasi TP, TN, FP, dan FN telah memiliki unit test.
-- Workflow pilot WIF dasar berjalan pada branch `codex/wif-deploy-basic`
-  repositori SITA. OAuth statis dan WIF multi-klaim belum dinyatakan siap.
+- Pilot OAuth statis, WIF dasar, dan WIF multi-klaim telah membuktikan jalur
+  autentikasi yang diizinkan. Skenario penolakan WIF multi-klaim untuk branch
+  yang tidak diizinkan juga telah tercatat sebagai TN; seluruh pilot tetap
+  dipisahkan dari data perbandingan final.
 
 Validasi kontrak bukti dijalankan dengan:
 

@@ -25,7 +25,7 @@ arsitektur baru dan kenaikan versi skema.
 | Observability | Tahap workflow, klaim OIDC tersanitasi, durasi, keputusan, dan bukti akhir tampil pada web | Token mentah, credential, dan `.env` tidak disimpan |
 | Batch berurutan | Worker Laravel database queue menunggu bukti satu trial sebelum menjadwalkan trial berikutnya | Pilot dua pengulangan WIF dasar selesai otomatis; data ini hanya bukti fungsi instrumen, bukan data eksperimen akhir |
 | OAuth statis | OAuth Client laboratorium terpisah, tag sementara, *secret* terenkripsi GitHub, pemicu Observatory, dan alur SITA privat telah diuji | Pilot sukses satu kali setelah aturan SSH spesifik OAuth disimpan; belum menjadi data pembanding final |
-| WIF multi-klaim | Belum diaktifkan | Tidak boleh dipakai sebagai data pembanding sebelum policy klaim dan pilot selesai |
+| WIF multi-klaim | Policy tag dan credential WIF dengan branch, workflow, repository, dan owner ID yang dibatasi telah diuji | Pilot izin tercatat sebagai TP; penolakan branch tercatat sebagai TN; keduanya belum data pembanding final |
 
 ### Catatan Uji Pilot Batch Otomatis
 
@@ -71,6 +71,26 @@ yang baru tetap dicatat dan diuji untuk TCP/22 serta Tailscale SSH, tetapi
 paling ketat. Sebelum eksperimen final yang mengukur penolakan target atau
 port, kebijakan umum harus direstrukturisasi dalam *maintenance window* dan
 skenario *deny* harus diuji kembali.
+
+### Catatan Uji Pilot WIF Multi-Klaim
+
+Pada 18 September 2026 WITA, WIF multi-klaim diuji pada branch eksperimen
+yang diizinkan. Identitas GitHub Actions memenuhi *claim* subject, branch,
+workflow, repository ID, dan owner ID yang dikonfigurasikan pada credential
+Tailscale. Trial selesai dengan keputusan `allow` dan klasifikasi `TP`.
+
+Skenario penolakan berikutnya memakai branch terpisah
+`codex/wif-multiclaim-deny-branch`, sedangkan credential WIF tetap hanya
+mempercayai branch `codex/wif-deploy-basic`. *Audience* sengaja dipertahankan
+benar agar variabel yang diuji hanya *claim* branch dan workflow. GitHub run
+`35301313904` menolak akses pada tahap `wif_exchange_and_join` setelah
+144.004,982 ms. Tahap *reachability*, SSH, pembaruan Docker, dan *health
+check* berstatus `skipped`; VM SITA tidak diakses. Observatory mencatat
+keputusan `deny`, alasan `WIF_ACCESS_DENIED`, dan klasifikasi `TN`.
+
+Kedua hasil ini membuktikan fungsi instrumen dan policy WIF multi-klaim.
+Hasil belum dipakai sebagai sampel perbandingan final sebelum protokol,
+jumlah pengulangan, commit SITA, dan urutan profil dibekukan.
 
 ## 2. Tujuan
 
