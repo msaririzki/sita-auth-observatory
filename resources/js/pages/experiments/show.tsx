@@ -18,6 +18,14 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -106,6 +114,7 @@ const profileLabels: Record<string, string> = {
 const scenarioLabels: Record<string, string> = {
     valid: 'Akses yang seharusnya diizinkan',
     wrong_audience: 'Tujuan token yang salah',
+    wrong_branch: 'Branch tidak diizinkan',
 };
 
 const statusLabels: Record<string, string> = {
@@ -389,6 +398,21 @@ function classificationLabel(value: string | null): string | null {
     return value === null ? null : (labels[value] ?? value);
 }
 
+function ProcessEvidenceStat({
+    label,
+    value,
+}: {
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="rounded-lg border p-3">
+            <p className="text-muted-foreground text-xs">{label}</p>
+            <p className="mt-1 font-medium">{value}</p>
+        </div>
+    );
+}
+
 export default function ExperimentEvidence({ experiment, trials }: Props) {
     const [explainedClaim, setExplainedClaim] = useState<string | null>(null);
     const [liveTrials, setLiveTrials] = useState(trials);
@@ -398,6 +422,7 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
     const [connectionStatus, setConnectionStatus] = useState<
         'connecting' | 'connected' | 'reconnecting'
     >('connecting');
+    const [processDetailOpen, setProcessDetailOpen] = useState(false);
     const form = useForm<{ evidence_file: File | null }>({
         evidence_file: null,
     });
@@ -436,6 +461,16 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
             activeTrial?.stages.find((stage) => stage.status === 'running') ??
             null,
         [activeTrial],
+    );
+
+    const processDetailTrial = useMemo(
+        () =>
+            activeTrial ??
+            [...liveTrials].sort(
+                (first, second) => second.sequence - first.sequence,
+            )[0] ??
+            null,
+        [activeTrial, liveTrials],
     );
 
     const completedStages = useMemo(
@@ -547,17 +582,116 @@ export default function ExperimentEvidence({ experiment, trials }: Props) {
                             </p>
                         </div>
                     </div>
-                    {activeTrial !== null && (
-                        <div className="text-right text-xs">
-                            <p className="text-muted-foreground">
-                                Progres pemeriksaan
-                            </p>
-                            <p className="font-medium tabular-nums">
-                                Tahap {completedStages} dari{' '}
-                                {expectedStageNames.length} selesai
-                            </p>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {activeTrial !== null && (
+                            <div className="text-right text-xs">
+                                <p className="text-muted-foreground">
+                                    Progres pemeriksaan
+                                </p>
+                                <p className="font-medium tabular-nums">
+                                    Tahap {completedStages} dari{' '}
+                                    {expectedStageNames.length} selesai
+                                </p>
+                            </div>
+                        )}
+                        {processDetailTrial !== null && (
+                            <Dialog
+                                open={processDetailOpen}
+                                onOpenChange={setProcessDetailOpen}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline">
+                                        <FileJson /> Lihat detail proses
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-3xl">
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            Bukti proses percobaan #{processDetailTrial.sequence}
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Ringkasan tahap yang disimpan Observatory. Nilai ini berasal dari laporan workflow dan tidak menyimpan token atau credential mentah.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 text-sm">
+                                        <div className="grid gap-3 sm:grid-cols-3">
+                                            <ProcessEvidenceStat
+                                                label="Keputusan akses"
+                                                value={decisionLabel(processDetailTrial.actual_decision)}
+                                            />
+                                            <ProcessEvidenceStat
+                                                label="Klasifikasi penelitian"
+                                                value={classificationLabel(processDetailTrial.classification) ?? 'Belum tersedia'}
+                                            />
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-muted-foreground text-xs">ID GitHub Actions</p>
+                                                {processDetailTrial.run_id ? (
+                                                    <a
+                                                        className="mt-1 inline-block font-medium text-indigo-700 underline underline-offset-4 dark:text-indigo-300"
+                                                        href={`https://github.com/msaririzki/sita/actions/runs/${processDetailTrial.run_id}`}
+                                                        rel="noreferrer"
+                                                        target="_blank"
+                                                    >
+                                                        Run #{processDetailTrial.run_id}
+                                                    </a>
+                                                ) : (
+                                                    <p className="mt-1 font-medium">Belum tersedia</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {processDetailTrial.failure_stage && (
+                                            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+                                                <p className="font-medium">
+                                                    Proses berhenti pada: {stageLabels[processDetailTrial.failure_stage] ?? processDetailTrial.failure_stage}
+                                                </p>
+                                                <p className="mt-1 font-mono text-xs text-destructive">
+                                                    {processDetailTrial.failure_reason ?? 'Penyebab teknis belum dikirim oleh workflow.'}
+                                                </p>
+                                            </div>
+                                        )}
+                                        <div className="overflow-x-auto rounded-lg border">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-muted/40">
+                                                    <tr>
+                                                        <th className="p-3">Tahap</th>
+                                                        <th className="p-3">Hasil</th>
+                                                        <th className="p-3">Durasi</th>
+                                                        <th className="p-3">Keterangan</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {expectedStageNames.map((stageName) => {
+                                                        const stage = processDetailTrial.stages.find(
+                                                            (candidate) => candidate.name === stageName,
+                                                        );
+                                                        const status = stage?.status ?? 'waiting';
+
+                                                        return (
+                                                            <tr key={stageName} className="border-t">
+                                                                <td className="p-3">{stageLabels[stageName] ?? stageName}</td>
+                                                                <td className="p-3">
+                                                                    <Badge variant="outline">
+                                                                        {stageStatusLabels[status] ?? status}
+                                                                    </Badge>
+                                                                </td>
+                                                                <td className="p-3 tabular-nums">{duration(stage?.duration_ms ?? null)}</td>
+                                                                <td className="text-muted-foreground p-3 text-xs leading-5">
+                                                                    {stage?.message ?? stage?.reason_code ?? (status === 'waiting' ? 'Belum dijalankan.' : 'Tidak ada catatan tambahan.')}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p className="text-muted-foreground text-xs">
+                                            ID pencatatan Observatory: {processDetailTrial.id}
+                                        </p>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                    </div>
                 </div>
                 <div className="bg-muted/30 rounded-xl border p-4 text-sm leading-6">
                     Halaman ini menjawab tiga hal: apakah GitHub membuktikan
