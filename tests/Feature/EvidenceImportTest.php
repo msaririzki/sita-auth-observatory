@@ -93,6 +93,20 @@ class EvidenceImportTest extends TestCase
         $this->assertSame('skipped', $trial->stageEvents()->where('stage', 'oidc_claim_capture')->sole()->status);
     }
 
+    public function test_multi_claim_wif_evidence_is_accepted(): void
+    {
+        $data = $this->evidence();
+        Experiment::query()->findOrFail($data['experiment_id'])->update([
+            'profile' => 'wif_multi_claim',
+        ]);
+        $data['profile'] = 'wif_multi_claim';
+
+        $trial = app(TrialEvidenceImporter::class)->import($data);
+
+        $this->assertSame(TrialStatus::Completed, $trial->status);
+        $this->assertSame('TP', $trial->classification->value);
+    }
+
     public function test_expected_audience_rejection_is_recorded_as_a_true_negative(): void
     {
         $data = $this->evidence();
